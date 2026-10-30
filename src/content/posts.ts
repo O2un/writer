@@ -1,0 +1,54 @@
+import { existsSync, statSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const POST_EXTENSIONS = ['.md', '.mdx'];
+const INDEX_FILES = POST_EXTENSIONS.map((ext) => `index${ext}`);
+
+export class PostNotFoundError extends Error {
+  override name = 'PostNotFoundError';
+}
+
+export class PostOutsideBlogError extends Error {
+  override name = 'PostOutsideBlogError';
+}
+
+export interface PostFile {
+  absolutePath: string;
+  relativePath: string;
+  source: string;
+}
+
+export function resolvePostPath(blogDir: string, input: string): string {
+  const candidate = path.resolve(blogDir, input);
+  const relative = path.relative(blogDir, candidate);
+  if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new PostOutsideBlogError(`글 폴더(src/content/blog) 밖의 경로다: ${input}`);
+  }
+
+  if (isFile(candidate)) {
+    if (!POST_EXTENSIONS.includes(path.extname(candidate))) {
+      throw new PostNotFoundError(`마크다운 파일이 아니다: ${input}`);
+    }
+    return candidate;
+  }
+
+  for (const name of INDEX_FILES) {
+    const file = path.join(candidate, name);
+    if (isFile(file)) return file;
+  }
+  throw new PostNotFoundError(`글을 찾을 수 없다: ${input}`);
+}
+
+export async function readPost(blogDir: string, input: string): Promise<PostFile> {
+  const absolutePath = resolvePostPath(blogDir, input);
+  return {
+    absolutePath,
+    relativePath: path.relative(blogDir, absolutePath).split(path.sep).join('/'),
+    source: await readFile(absolutePath, 'utf8'),
+  };
+}
+
+function isFile(target: string): boolean {
+  return existsSync(target) && statSync(target).isFile();
+}
