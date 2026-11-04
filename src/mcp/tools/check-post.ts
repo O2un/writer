@@ -7,16 +7,22 @@ import type { Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
 import { PostNotFoundError, PostOutsideContentError, readPost } from '../../content/posts.js';
 import { checkPost, createRules, SEVERITIES, type CheckResult, type RuleContext } from '../../rules/index.js';
+import { DEFAULT_TEMPLATE_ID, TEMPLATE_IDS, TEMPLATES } from '../../templates/index.js';
 
 const inputSchema = {
   path: z
     .string()
     .min(1)
     .describe('Post path relative to the content folder. Accepts a post folder (e.g. notes/hello) or a file (e.g. notes/hello/index.md)'),
+  template: z
+    .enum(TEMPLATE_IDS)
+    .default(DEFAULT_TEMPLATE_ID)
+    .describe(`Post template to check against. ${TEMPLATE_IDS.map((id) => `${id}: ${TEMPLATES[id].description}`).join('; ')}`),
 };
 
 const outputSchema = {
   post: z.string().describe('File path relative to the content folder'),
+  template: z.enum(TEMPLATE_IDS).describe('Template the post was checked against'),
   passed: z.boolean().describe('True when there are no errors or warnings. Info is advisory and does not affect the result'),
   counts: z.object({ error: z.number().int(), warning: z.number().int(), info: z.number().int() }),
   violations: z.array(
@@ -41,7 +47,7 @@ export function registerCheckPost(server: McpServer, config: Config): void {
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ path: input }): Promise<CallToolResult> => {
+    async ({ path: input, template }): Promise<CallToolResult> => {
       let file;
       try {
         file = await readPost(config.contentDir, input);
@@ -53,9 +59,12 @@ export function registerCheckPost(server: McpServer, config: Config): void {
       }
 
       const postDir = path.dirname(file.absolutePath);
-      const context: RuleContext = { assetExists: (relative) => existsSync(path.resolve(postDir, relative)) };
+      const context: RuleContext = {
+        assetExists: (relative) => existsSync(path.resolve(postDir, relative)),
+        template: TEMPLATES[template],
+      };
       const result = checkPost(parsePost(file.source), context, rules);
-      const output = { post: file.relativePath, passed: result.counts.error + result.counts.warning === 0, ...result };
+      const output = { post: file.relativePath, template, passed: result.counts.error + result.counts.warning === 0, ...result };
 
       return {
         content: [{ type: 'text', text: formatReport(output.post, result) }],

@@ -94,10 +94,10 @@ LLM 비평은 코드로 판정할 수 없는 항목만 맡는다. 예를 들면 
 
 ## 9. 마일스톤
 
-1. **M1 뼈대**: TS 프로젝트, MCP 서버, `check_post` (LLM 없음). Claude Code에서 호출되는지 확인한다.
+1. **M1 뼈대**: TS 프로젝트, MCP 서버, `check_post` (LLM 없음), 템플릿 선택 구조. Claude Code에서 호출되는지 확인한다.
 2. **M2 Provider**: 인터페이스, `anthropic-api` 구현, `claude-code` 어댑터.
 3. **M3 루프**: `review_post`, `revise_post`, 반복 기록.
-4. **M4 초안**: `draft_post`, `list_posts` 연동.
+4. **M4 초안**: `draft_post`, `list_posts` 연동. 기존 글을 읽어 템플릿 내용을 채우고, 그중 하나를 골라 초안을 쓴다.
 5. **M5 포트폴리오**: README, 아키텍처 설명, 시연 기록.
 
 ## 10. 열린 질문
