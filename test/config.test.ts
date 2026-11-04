@@ -43,16 +43,16 @@ describe('loadConfig', () => {
   });
 
   it('rejects a SITE_ROOT without a content folder', () => {
-    expect(() => loadConfig({ SITE_ROOT: path.dirname(FIXTURE_SITE_ROOT) })).toThrow(/글 폴더/);
+    expect(() => loadConfig({ SITE_ROOT: path.dirname(FIXTURE_SITE_ROOT) })).toThrow(/content folder not found/);
   });
 
   it('rejects a missing schema file', () => {
-    expect(() => loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT, WRITER_SCHEMA: 'nope.json' })).toThrow(/스키마 파일을 찾을 수 없다/);
+    expect(() => loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT, WRITER_SCHEMA: 'nope.json' })).toThrow(/schema file not found/);
   });
 
   it.each([
-    ['broken JSON', '{', /JSON으로 읽을 수 없다/],
-    ['a non-object', '[1]', /JSON 객체가 아니다/],
+    ['broken JSON', '{', /not valid JSON/],
+    ['a non-object', '[1]', /not a JSON object/],
   ])('rejects a schema file with %s', (_, content, message) => {
     const root = siteWithSchema(content);
     const env = { SITE_ROOT: root, WRITER_CONTENT_DIR: 'posts', WRITER_SCHEMA: 'schema.json' };

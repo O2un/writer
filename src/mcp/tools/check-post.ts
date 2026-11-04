@@ -12,12 +12,12 @@ const inputSchema = {
   path: z
     .string()
     .min(1)
-    .describe('글 폴더 기준 글 경로. 글 폴더(예: 선택/Loop)나 파일(예: 선택/Loop/index.md) 모두 받는다'),
+    .describe('Post path relative to the content folder. Accepts a post folder (e.g. notes/hello) or a file (e.g. notes/hello/index.md)'),
 };
 
 const outputSchema = {
-  post: z.string().describe('글 폴더 기준 파일 경로'),
-  passed: z.boolean().describe('error와 warning이 하나도 없으면 true. info는 권고라 판정에 넣지 않는다'),
+  post: z.string().describe('File path relative to the content folder'),
+  passed: z.boolean().describe('True when there are no errors or warnings. Info is advisory and does not affect the result'),
   counts: z.object({ error: z.number().int(), warning: z.number().int(), info: z.number().int() }),
   violations: z.array(
     z.object({
@@ -33,8 +33,8 @@ export function registerCheckPost(server: McpServer, config: Config): void {
   server.registerTool(
     'check_post',
     {
-      title: '글 규칙 검사',
-      description: '글 하나에 결정적 규칙 검사를 돌리고 위반 목록을 돌려준다. LLM을 쓰지 않고 파일을 고치지 않는다.',
+      title: 'Check post rules',
+      description: 'Runs deterministic rule checks on one post and returns the violations. Does not use an LLM or modify files.',
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

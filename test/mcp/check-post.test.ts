@@ -37,8 +37,8 @@ describe('check_post', () => {
   });
 
   it.each([
-    ['a missing post', 'sample/nope', /글을 찾을 수 없다/],
-    ['a path outside the blog folder', '../../package.json', /글 폴더/],
+    ['a missing post', 'sample/nope', /post not found/],
+    ['a path outside the blog folder', '../../package.json', /outside the content folder/],
   ])('answers with a tool error for %s', async (_, path, message) => {
     const result = await call(path);
     expect(result.isError).toBe(true);

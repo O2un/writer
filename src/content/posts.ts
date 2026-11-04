@@ -23,12 +23,12 @@ export function resolvePostPath(contentDir: string, input: string): string {
   const candidate = path.resolve(contentDir, input);
   const relative = path.relative(contentDir, candidate);
   if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new PostOutsideContentError(`글 폴더 밖의 경로다: ${input}`);
+    throw new PostOutsideContentError(`path is outside the content folder: ${input}`);
   }
 
   if (isFile(candidate)) {
     if (!POST_EXTENSIONS.includes(path.extname(candidate))) {
-      throw new PostNotFoundError(`마크다운 파일이 아니다: ${input}`);
+      throw new PostNotFoundError(`not a markdown file: ${input}`);
     }
     return candidate;
   }
@@ -37,7 +37,7 @@ export function resolvePostPath(contentDir: string, input: string): string {
     const file = path.join(candidate, name);
     if (isFile(file)) return file;
   }
-  throw new PostNotFoundError(`글을 찾을 수 없다: ${input}`);
+  throw new PostNotFoundError(`post not found: ${input}`);
 }
 
 export async function readPost(contentDir: string, input: string): Promise<PostFile> {
