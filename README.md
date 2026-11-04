@@ -27,6 +27,8 @@ npm run build
 | `SITE_ROOT` | 필수 | 사이트 레포 루트 |
 | `WRITER_CONTENT_DIR` | `src/content/blog` | 글 폴더 |
 | `WRITER_SCHEMA` | `.astro/collections/blog.schema.json` | frontmatter JSON Schema |
+| `LLM_PROVIDER` | `claude-code` | LLM 호출 방식. `claude-code`(Claude 구독) 또는 `anthropic-api`(API 키, 사용량 과금) |
+| `WRITER_MODEL` | Provider 기본값 | 모델 ID |
 
 값이 잘못되면 서버가 시작하지 않고 stderr에 이유를 출력한다.
 
