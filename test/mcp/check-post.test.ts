@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServer } from '../../src/mcp/server.js';
-import { FIXTURE_BLOG_DIR, FIXTURE_DEVLOG_ROOT } from '../fixtures.js';
+import { FIXTURE_CONFIG } from '../fixtures.js';
 
 describe('check_post', () => {
   let client: Client;
@@ -10,7 +10,7 @@ describe('check_post', () => {
   beforeEach(async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     client = new Client({ name: 'test', version: '0.0.0' });
-    const server = createServer({ devlogRoot: FIXTURE_DEVLOG_ROOT, blogDir: FIXTURE_BLOG_DIR });
+    const server = createServer(FIXTURE_CONFIG);
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   });
 

@@ -9,8 +9,8 @@ export class PostNotFoundError extends Error {
   override name = 'PostNotFoundError';
 }
 
-export class PostOutsideBlogError extends Error {
-  override name = 'PostOutsideBlogError';
+export class PostOutsideContentError extends Error {
+  override name = 'PostOutsideContentError';
 }
 
 export interface PostFile {
@@ -19,11 +19,11 @@ export interface PostFile {
   source: string;
 }
 
-export function resolvePostPath(blogDir: string, input: string): string {
-  const candidate = path.resolve(blogDir, input);
-  const relative = path.relative(blogDir, candidate);
+export function resolvePostPath(contentDir: string, input: string): string {
+  const candidate = path.resolve(contentDir, input);
+  const relative = path.relative(contentDir, candidate);
   if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new PostOutsideBlogError(`글 폴더(src/content/blog) 밖의 경로다: ${input}`);
+    throw new PostOutsideContentError(`글 폴더 밖의 경로다: ${input}`);
   }
 
   if (isFile(candidate)) {
@@ -40,11 +40,11 @@ export function resolvePostPath(blogDir: string, input: string): string {
   throw new PostNotFoundError(`글을 찾을 수 없다: ${input}`);
 }
 
-export async function readPost(blogDir: string, input: string): Promise<PostFile> {
-  const absolutePath = resolvePostPath(blogDir, input);
+export async function readPost(contentDir: string, input: string): Promise<PostFile> {
+  const absolutePath = resolvePostPath(contentDir, input);
   return {
     absolutePath,
-    relativePath: path.relative(blogDir, absolutePath).split(path.sep).join('/'),
+    relativePath: path.relative(contentDir, absolutePath).split(path.sep).join('/'),
     source: await readFile(absolutePath, 'utf8'),
   };
 }
