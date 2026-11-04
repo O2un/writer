@@ -50,9 +50,22 @@ describe('parseBody', () => {
       expect(parsed.references.map((r) => r.label)).toEqual(['a']);
     });
 
+    it.each([
+      ['an em dash', '설명 문장. — [a](https://x.y)', '설명 문장.'],
+      ['a hyphen', '설명 문장 - [a](https://x.y)', '설명 문장'],
+      ['several links', '설명 문장. — [a](https://x.y), [b](https://x.y)', '설명 문장.'],
+      ['a link first', '[a](https://x.y) — 설명 문장.', '설명 문장.'],
+      ['a link in the middle', '앞 [a](https://x.y) 뒤.', '앞  뒤.'],
+      ['only a link', '[a](https://x.y)', ''],
+      ['no link', '설명 문장.', '설명 문장.'],
+      ['a hyphen inside the text', 'A-B 비교.', 'A-B 비교.'],
+    ])('separates the explanation from links with %s', (_, text, expected) => {
+      expect(parseBody(`본문.[^1]\n\n[^1]: ${text}`).definitions[0]?.explanation).toBe(expected);
+    });
+
     it('joins multi-line definitions into one line of text', () => {
       const parsed = parseBody(withReferences('본문.[^a]', '[^a]: 첫 줄\n    둘째 줄. — [t - s](https://x.y)'));
-      expect(parsed.definitions).toEqual([{ label: 'a', line: 5, text: '첫 줄 둘째 줄. — [t - s](https://x.y)' }]);
+      expect(parsed.definitions).toEqual([{ label: 'a', line: 5, text: '첫 줄 둘째 줄. — [t - s](https://x.y)', explanation: '첫 줄 둘째 줄.', links: [{ title: 't - s', url: 'https://x.y' }] }]);
     });
   });
 });

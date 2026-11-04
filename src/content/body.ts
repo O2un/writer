@@ -18,10 +18,17 @@ export interface FootnoteReference {
   inImage: boolean;
 }
 
+export interface FootnoteLink {
+  title: string;
+  url: string;
+}
+
 export interface FootnoteDefinition {
   label: string;
   line: number;
   text: string;
+  explanation: string;
+  links: FootnoteLink[];
 }
 
 export interface Body {
@@ -33,6 +40,7 @@ export interface Body {
 const processor = unified().use(remarkParse).use(remarkGfm);
 
 const LOOSE_REFERENCE = /\[\^([^\]\s]+)\]/g;
+const SEPARATOR_EDGES = /^[\s—–:,-]+|[\s—–:,-]+$/g;
 
 export function parseBody(body: string): Body {
   const tree = processor.parse(body);
@@ -62,14 +70,33 @@ function collectDefinitions(tree: Root, body: string): FootnoteDefinition[] {
   const definitions: FootnoteDefinition[] = [];
   visit(tree, 'footnoteDefinition', (node: MdFootnoteDefinition) => {
     const label = node.label ?? node.identifier;
-    const raw = body.slice(node.position!.start.offset, node.position!.end.offset);
-    const text = raw
-      .slice(raw.indexOf(']:') + 2)
-      .replace(/\s*\n\s*/g, ' ')
-      .trim();
-    definitions.push({ label, line: node.position!.start.line, text });
+    const start = node.position!.start.offset!;
+    const end = node.position!.end.offset!;
+    const contentStart = start + body.slice(start, end).indexOf(']:') + 2;
+
+    const links: FootnoteLink[] = [];
+    let outsideLinks = '';
+    let cursor = contentStart;
+    visit(node, 'link', (link) => {
+      links.push({ title: toString(link), url: link.url });
+      outsideLinks += body.slice(cursor, link.position!.start.offset);
+      cursor = link.position!.end.offset!;
+    });
+    outsideLinks += body.slice(cursor, end);
+
+    definitions.push({
+      label,
+      line: node.position!.start.line,
+      text: toOneLine(body.slice(contentStart, end)),
+      explanation: toOneLine(outsideLinks).replace(SEPARATOR_EDGES, ''),
+      links,
+    });
   });
   return definitions;
+}
+
+function toOneLine(text: string): string {
+  return text.replace(/\s*\n\s*/g, ' ').trim();
 }
 
 function collectReferences(tree: Root, body: string, defined: ReadonlySet<string>): FootnoteReference[] {
