@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseBody } from '../../src/content/body.js';
+import { definition, withReferences } from '../helpers.js';
 
 describe('parseBody', () => {
   it('collects headings with depth, plain text and line', () => {
@@ -11,5 +12,47 @@ describe('parseBody', () => {
 
   it('ignores heading syntax inside code blocks', () => {
     expect(parseBody('```md\n## 코드 안\n```').headings).toEqual([]);
+  });
+
+  describe('footnotes', () => {
+    it('collects references in document order with lines', () => {
+      const parsed = parseBody(withReferences('첫 문장.[^b]\n\n둘째 문장.[^a]', definition('a'), definition('b')));
+      expect(parsed.references.map((r) => [r.label, r.line, r.resolved])).toEqual([
+        ['b', 1, true],
+        ['a', 3, true],
+      ]);
+    });
+
+    it('keeps markers without a definition as unresolved references', () => {
+      expect(parseBody('정의 없는 마커.[^ghost]').references).toEqual([{ label: 'ghost', line: 1, resolved: false, inImage: false }]);
+    });
+
+    it('reports the line of an unresolved marker inside a multi-line paragraph', () => {
+      expect(parseBody('첫 줄\n둘째 줄\n셋째 줄[^ghost]').references[0]).toMatchObject({ label: 'ghost', line: 3 });
+    });
+
+    it('matches labels case-insensitively', () => {
+      const parsed = parseBody(withReferences('본문.[^A]', definition('a')));
+      expect(parsed.references[0]).toMatchObject({ label: 'A', resolved: true });
+    });
+
+    it('ignores markers inside code', () => {
+      expect(parseBody(['`[^1]` 인라인 코드', '', '```md', 'text[^2]', '```'].join('\n')).references).toEqual([]);
+    });
+
+    it('finds markers in image alt text and titles', () => {
+      const parsed = parseBody(withReferences('![그림](./a.png "캡션[^img]")', definition('img')));
+      expect(parsed.references).toEqual([{ label: 'img', line: 1, resolved: true, inImage: true }]);
+    });
+
+    it('does not count markers inside definitions as references', () => {
+      const parsed = parseBody(withReferences('본문.[^a]', definition('a', '정의 안의 [^b] 마커.'), definition('b')));
+      expect(parsed.references.map((r) => r.label)).toEqual(['a']);
+    });
+
+    it('joins multi-line definitions into one line of text', () => {
+      const parsed = parseBody(withReferences('본문.[^a]', '[^a]: 첫 줄\n    둘째 줄. — [t - s](https://x.y)'));
+      expect(parsed.definitions).toEqual([{ label: 'a', line: 5, text: '첫 줄 둘째 줄. — [t - s](https://x.y)' }]);
+    });
   });
 });
