@@ -18,10 +18,16 @@ export interface FootnoteReference {
   inImage: boolean;
 }
 
+export interface FootnoteLink {
+  title: string;
+  url: string;
+}
+
 export interface FootnoteDefinition {
   label: string;
   line: number;
   text: string;
+  links: FootnoteLink[];
 }
 
 export interface Body {
@@ -67,7 +73,11 @@ function collectDefinitions(tree: Root, body: string): FootnoteDefinition[] {
       .slice(raw.indexOf(']:') + 2)
       .replace(/\s*\n\s*/g, ' ')
       .trim();
-    definitions.push({ label, line: node.position!.start.line, text });
+    const links: FootnoteLink[] = [];
+    visit(node, 'link', (link) => {
+      links.push({ title: toString(link), url: link.url });
+    });
+    definitions.push({ label, line: node.position!.start.line, text, links });
   });
   return definitions;
 }

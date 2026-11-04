@@ -52,7 +52,7 @@ describe('parseBody', () => {
 
     it('joins multi-line definitions into one line of text', () => {
       const parsed = parseBody(withReferences('본문.[^a]', '[^a]: 첫 줄\n    둘째 줄. — [t - s](https://x.y)'));
-      expect(parsed.definitions).toEqual([{ label: 'a', line: 5, text: '첫 줄 둘째 줄. — [t - s](https://x.y)' }]);
+      expect(parsed.definitions).toEqual([{ label: 'a', line: 5, text: '첫 줄 둘째 줄. — [t - s](https://x.y)', links: [{ title: 't - s', url: 'https://x.y' }] }]);
     });
   });
 });
