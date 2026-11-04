@@ -38,14 +38,15 @@ Claude Code ──MCP(stdio)──▶ writer
                              ├─ mcp/      MCP 서버, 도구 정의
                              ├─ loop/     작성·검토 루프 오케스트레이션
                              ├─ rules/    결정적 규칙 검사 (LLM 미사용)
-                             ├─ content/  devlog 글·색인·스키마 읽기/쓰기
+                             ├─ content/  글 찾기, frontmatter와 본문 파싱
+                             ├─ templates/ 글 템플릿 목록
                              └─ llm/      Provider 인터페이스
                                   ├─ anthropic-api
                                   └─ claude-code
 ```
 
 - **언어**: TypeScript (Node). MCP SDK와 Anthropic SDK 둘 다 공식 지원한다.
-- **devlog 경로**: 상대경로를 하드코딩하지 않고 설정(예: `DEVLOG_ROOT`)으로 받는다. writer 레포만 따로 clone해도 쓸 수 있게 하기 위해서다.
+- **사이트 경로**: 상대경로를 하드코딩하지 않고 설정(`SITE_ROOT`)으로 받는다. writer 레포만 따로 clone해도 쓸 수 있게 하기 위해서다.
 
 ## 5. MCP 도구 (초안)
 
