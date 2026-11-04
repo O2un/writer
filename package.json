@@ -19,6 +19,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "ajv": "^8.20.0",
     "mdast-util-to-string": "^4.0.0",
