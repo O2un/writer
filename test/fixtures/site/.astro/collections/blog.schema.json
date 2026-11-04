@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "pubDate": { "type": "string", "format": "date-time" },
+    "thumbnail": { "type": "string" },
+    "accent": { "type": "string", "enum": ["blue", "crimson"] },
+    "escape": {
+      "type": "object",
+      "properties": {
+        "cafe": { "type": "string" },
+        "players": { "type": "integer", "exclusiveMinimum": 0 },
+        "difficulty": { "type": "number", "minimum": 0.5, "maximum": 5, "multipleOf": 0.5 }
+      },
+      "required": ["cafe", "players"]
+    }
+  },
+  "required": ["title", "description", "pubDate"]
+}

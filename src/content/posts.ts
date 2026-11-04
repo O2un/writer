@@ -9,8 +9,8 @@ export class PostNotFoundError extends Error {
   override name = 'PostNotFoundError';
 }
 
-export class PostOutsideBlogError extends Error {
-  override name = 'PostOutsideBlogError';
+export class PostOutsideContentError extends Error {
+  override name = 'PostOutsideContentError';
 }
 
 export interface PostFile {
@@ -19,16 +19,16 @@ export interface PostFile {
   source: string;
 }
 
-export function resolvePostPath(blogDir: string, input: string): string {
-  const candidate = path.resolve(blogDir, input);
-  const relative = path.relative(blogDir, candidate);
+export function resolvePostPath(contentDir: string, input: string): string {
+  const candidate = path.resolve(contentDir, input);
+  const relative = path.relative(contentDir, candidate);
   if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new PostOutsideBlogError(`글 폴더(src/content/blog) 밖의 경로다: ${input}`);
+    throw new PostOutsideContentError(`path is outside the content folder: ${input}`);
   }
 
   if (isFile(candidate)) {
     if (!POST_EXTENSIONS.includes(path.extname(candidate))) {
-      throw new PostNotFoundError(`마크다운 파일이 아니다: ${input}`);
+      throw new PostNotFoundError(`not a markdown file: ${input}`);
     }
     return candidate;
   }
@@ -37,14 +37,14 @@ export function resolvePostPath(blogDir: string, input: string): string {
     const file = path.join(candidate, name);
     if (isFile(file)) return file;
   }
-  throw new PostNotFoundError(`글을 찾을 수 없다: ${input}`);
+  throw new PostNotFoundError(`post not found: ${input}`);
 }
 
-export async function readPost(blogDir: string, input: string): Promise<PostFile> {
-  const absolutePath = resolvePostPath(blogDir, input);
+export async function readPost(contentDir: string, input: string): Promise<PostFile> {
+  const absolutePath = resolvePostPath(contentDir, input);
   return {
     absolutePath,
-    relativePath: path.relative(blogDir, absolutePath).split(path.sep).join('/'),
+    relativePath: path.relative(contentDir, absolutePath).split(path.sep).join('/'),
     source: await readFile(absolutePath, 'utf8'),
   };
 }

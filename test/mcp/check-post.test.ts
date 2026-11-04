@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServer } from '../../src/mcp/server.js';
-import { FIXTURE_BLOG_DIR, FIXTURE_DEVLOG_ROOT } from '../fixtures.js';
+import { FIXTURE_CONFIG } from '../fixtures.js';
 
 describe('check_post', () => {
   let client: Client;
@@ -10,7 +10,7 @@ describe('check_post', () => {
   beforeEach(async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     client = new Client({ name: 'test', version: '0.0.0' });
-    const server = createServer({ devlogRoot: FIXTURE_DEVLOG_ROOT, blogDir: FIXTURE_BLOG_DIR });
+    const server = createServer(FIXTURE_CONFIG);
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   });
 
@@ -36,9 +36,16 @@ describe('check_post', () => {
     expect(result.content).toEqual([{ type: 'text', text: 'sample/clean/index.md: error 0, warning 0, info 0' }]);
   });
 
+  it('reports violations from the site schema and checks assets next to the post', async () => {
+    const result = await call('sample/broken');
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ post: 'sample/broken/index.md', passed: false, counts: { error: 3, warning: 1, info: 0 } });
+    expect((result.content as { text: string }[])[0]?.text).toContain('L5 [error] frontmatter: thumbnail file not found: ./없는파일.png');
+  });
+
   it.each([
-    ['a missing post', 'sample/nope', /글을 찾을 수 없다/],
-    ['a path outside the blog folder', '../../package.json', /글 폴더/],
+    ['a missing post', 'sample/nope', /post not found/],
+    ['a path outside the blog folder', '../../package.json', /outside the content folder/],
   ])('answers with a tool error for %s', async (_, path, message) => {
     const result = await call(path);
     expect(result.isError).toBe(true);

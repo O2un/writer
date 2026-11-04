@@ -1,14 +1,17 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 
 export interface Config {
-  devlogRoot: string;
-  blogDir: string;
+  siteRoot: string;
+  contentDir: string;
+  schema: Record<string, unknown>;
 }
 
 const envSchema = z.object({
-  DEVLOG_ROOT: z.string().trim().min(1, 'DEVLOG_ROOT가 비어 있다'),
+  SITE_ROOT: z.string().trim().min(1),
+  WRITER_CONTENT_DIR: z.string().trim().min(1).default('src/content/blog'),
+  WRITER_SCHEMA: z.string().trim().min(1).default('.astro/collections/blog.schema.json'),
 });
 
 export class ConfigError extends Error {
@@ -18,14 +21,32 @@ export class ConfigError extends Error {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = envSchema.safeParse(env);
   if (!parsed.success) {
-    throw new ConfigError('DEVLOG_ROOT 환경변수에 devlog 레포 루트 경로를 지정해야 한다');
+    throw new ConfigError(`environment variable ${String(parsed.error.issues[0]?.path[0])} must be set`);
   }
 
-  const devlogRoot = path.resolve(parsed.data.DEVLOG_ROOT);
-  const blogDir = path.join(devlogRoot, 'src', 'content', 'blog');
-  if (!existsSync(blogDir) || !statSync(blogDir).isDirectory()) {
-    throw new ConfigError(`글 폴더를 찾을 수 없다: ${blogDir}`);
+  const siteRoot = path.resolve(parsed.data.SITE_ROOT);
+  const contentDir = path.resolve(siteRoot, parsed.data.WRITER_CONTENT_DIR);
+  if (!existsSync(contentDir) || !statSync(contentDir).isDirectory()) {
+    throw new ConfigError(`content folder not found: ${contentDir}`);
   }
 
-  return { devlogRoot, blogDir };
+  return { siteRoot, contentDir, schema: readSchema(path.resolve(siteRoot, parsed.data.WRITER_SCHEMA)) };
+}
+
+function readSchema(file: string): Record<string, unknown> {
+  if (!existsSync(file)) {
+    throw new ConfigError(`schema file not found: ${file}. Check that the site has been built`);
+  }
+
+  let schema: unknown;
+  try {
+    schema = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    throw new ConfigError(`schema file is not valid JSON: ${file}`);
+  }
+
+  if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
+    throw new ConfigError(`schema file is not a JSON object: ${file}`);
+  }
+  return schema as Record<string, unknown>;
 }

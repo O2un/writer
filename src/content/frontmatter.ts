@@ -45,7 +45,7 @@ export function parseFrontmatter(raw: RawFrontmatter | null): FrontmatterBlock {
   }
 
   if (data === null || typeof data !== 'object' || Array.isArray(data)) {
-    return { status: 'invalid', line, error: 'frontmatter가 키-값 객체가 아니다' };
+    return { status: 'invalid', line, error: 'frontmatter must be a key-value mapping' };
   }
 
   const locate = (path: readonly PropertyKey[]): number => {

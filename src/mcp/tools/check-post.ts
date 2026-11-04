@@ -5,19 +5,19 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
-import { PostNotFoundError, PostOutsideBlogError, readPost } from '../../content/posts.js';
-import { checkPost, SEVERITIES, type CheckResult, type RuleContext } from '../../rules/index.js';
+import { PostNotFoundError, PostOutsideContentError, readPost } from '../../content/posts.js';
+import { checkPost, createRules, SEVERITIES, type CheckResult, type RuleContext } from '../../rules/index.js';
 
 const inputSchema = {
   path: z
     .string()
     .min(1)
-    .describe('src/content/blog 기준 글 경로. 글 폴더(예: 선택/Loop)나 파일(예: 선택/Loop/index.md) 모두 받는다'),
+    .describe('Post path relative to the content folder. Accepts a post folder (e.g. notes/hello) or a file (e.g. notes/hello/index.md)'),
 };
 
 const outputSchema = {
-  post: z.string().describe('src/content/blog 기준 파일 경로'),
-  passed: z.boolean().describe('error와 warning이 하나도 없으면 true. info는 권고라 판정에 넣지 않는다'),
+  post: z.string().describe('File path relative to the content folder'),
+  passed: z.boolean().describe('True when there are no errors or warnings. Info is advisory and does not affect the result'),
   counts: z.object({ error: z.number().int(), warning: z.number().int(), info: z.number().int() }),
   violations: z.array(
     z.object({
@@ -30,11 +30,13 @@ const outputSchema = {
 };
 
 export function registerCheckPost(server: McpServer, config: Config): void {
+  const rules = createRules(config);
+
   server.registerTool(
     'check_post',
     {
-      title: '글 규칙 검사',
-      description: 'devlog 글 하나에 결정적 규칙 검사를 돌리고 위반 목록을 돌려준다. LLM을 쓰지 않고 파일을 고치지 않는다.',
+      title: 'Check post rules',
+      description: 'Runs deterministic rule checks on one post and returns the violations. Does not use an LLM or modify files.',
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -42,9 +44,9 @@ export function registerCheckPost(server: McpServer, config: Config): void {
     async ({ path: input }): Promise<CallToolResult> => {
       let file;
       try {
-        file = await readPost(config.blogDir, input);
+        file = await readPost(config.contentDir, input);
       } catch (error) {
-        if (error instanceof PostNotFoundError || error instanceof PostOutsideBlogError) {
+        if (error instanceof PostNotFoundError || error instanceof PostOutsideContentError) {
           return { isError: true, content: [{ type: 'text', text: error.message }] };
         }
         throw error;
@@ -52,7 +54,7 @@ export function registerCheckPost(server: McpServer, config: Config): void {
 
       const postDir = path.dirname(file.absolutePath);
       const context: RuleContext = { assetExists: (relative) => existsSync(path.resolve(postDir, relative)) };
-      const result = checkPost(parsePost(file.source), context);
+      const result = checkPost(parsePost(file.source), context, rules);
       const output = { post: file.relativePath, passed: result.counts.error + result.counts.warning === 0, ...result };
 
       return {
