@@ -4,8 +4,8 @@ import { parsePost } from '../../src/content/post.js';
 import { createFrontmatterRule } from '../../src/rules/frontmatter.js';
 import type { RuleContext } from '../../src/rules/index.js';
 import { FIXTURE_CONFIG } from '../fixtures.js';
+import { allAssets } from '../helpers.js';
 
-const allAssets: RuleContext = { assetExists: () => true };
 const rule = createFrontmatterRule(FIXTURE_CONFIG.schema);
 
 const BASE = ["title: 't'", "description: 'd'", "pubDate: '2026-10-30'"];
@@ -49,7 +49,7 @@ describe('frontmatter rule', () => {
   });
 
   it('checks that a local thumbnail exists and skips remote ones', () => {
-    const noAssets: RuleContext = { assetExists: () => false };
+    const noAssets: RuleContext = { ...allAssets, assetExists: () => false };
     expect(summary(check([...BASE, "thumbnail: './a.png'"], noAssets))).toEqual([['error', 5, 'thumbnail file not found: ./a.png']]);
     expect(check([...BASE, "thumbnail: 'https://x.y/a.png'"], noAssets)).toEqual([]);
   });

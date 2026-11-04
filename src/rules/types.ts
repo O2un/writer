@@ -1,4 +1,5 @@
 import type { Post } from '../content/post.js';
+import type { Template } from '../templates/index.js';
 
 export const SEVERITIES = ['error', 'warning', 'info'] as const;
 export type Severity = (typeof SEVERITIES)[number];
@@ -12,6 +13,7 @@ export interface Violation {
 
 export interface RuleContext {
   assetExists(relativePath: string): boolean;
+  template: Template;
 }
 
 export interface Rule {

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { parsePost } from '../../src/content/post.js';
-import { checkPost, type Rule, type RuleContext } from '../../src/rules/index.js';
+import { checkPost, type Rule } from '../../src/rules/index.js';
 import { reporter } from '../../src/rules/types.js';
+import { allAssets } from '../helpers.js';
 
 const post = parsePost('# 제목');
-const context: RuleContext = { assetExists: () => true };
+const context = allAssets;
 
 const fake = (id: string, build: (r: ReturnType<typeof reporter>) => ReturnType<Rule['check']>): Rule => ({
   id,

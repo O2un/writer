@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parsePost } from '../../src/content/post.js';
 import { footnoteIntegrityRule } from '../../src/rules/footnote-integrity.js';
+import { allAssets } from '../helpers.js';
 
 const check = (source: string) =>
-  footnoteIntegrityRule.check(parsePost(source), { assetExists: () => true }).map((v) => [v.severity, v.line, v.message]);
+  footnoteIntegrityRule.check(parsePost(source), allAssets).map((v) => [v.severity, v.line, v.message]);
 
 describe('footnote-integrity rule', () => {
   it('passes when every marker and definition pair up', () => {

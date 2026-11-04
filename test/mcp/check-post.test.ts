@@ -16,7 +16,7 @@ describe('check_post', () => {
 
   afterEach(() => client.close());
 
-  const call = (path: string) => client.callTool({ name: 'check_post', arguments: { path } });
+  const call = (path: string, template?: string) => client.callTool({ name: 'check_post', arguments: { path, ...(template && { template }) } });
 
   it('is listed as a read-only tool', async () => {
     const { tools } = await client.listTools();
@@ -29,6 +29,7 @@ describe('check_post', () => {
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent).toEqual({
       post: 'sample/clean/index.md',
+      template: 'article',
       passed: true,
       counts: { error: 0, warning: 0, info: 0 },
       violations: [],
@@ -41,6 +42,22 @@ describe('check_post', () => {
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent).toMatchObject({ post: 'sample/broken/index.md', passed: false, counts: { error: 3, warning: 1, info: 0 } });
     expect((result.content as { text: string }[])[0]?.text).toContain('L5 [error] frontmatter: thumbnail file not found: ./없는파일.png');
+  });
+
+  it('checks against the selected template', async () => {
+    const result = await call('sample/clean', 'escape-review');
+    expect(result.structuredContent).toMatchObject({ template: 'escape-review' });
+  });
+
+  it('rejects an unknown template', async () => {
+    expect((await call('sample/clean', 'nope')).isError).toBe(true);
+  });
+
+  it('lists the templates in the input schema', async () => {
+    const { tools } = await client.listTools();
+    const { template } = tools[0]?.inputSchema.properties as { template: { enum: string[]; default: string } };
+    expect(template.enum).toEqual(['article', 'escape-review']);
+    expect(template.default).toBe('article');
   });
 
   it.each([
