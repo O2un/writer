@@ -1,6 +1,7 @@
 import type { Config } from '../config.js';
 import type { Post } from '../content/post.js';
 import { footnoteIntegrityRule } from './footnote-integrity.js';
+import { footnoteLengthRule } from './footnote-length.js';
 import { footnoteLinkRule } from './footnote-link.js';
 import { footnotePlacementRule } from './footnote-placement.js';
 import { createFrontmatterRule } from './frontmatter.js';
@@ -10,7 +11,7 @@ export type { Rule, RuleContext, Severity, Violation } from './types.js';
 export { SEVERITIES } from './types.js';
 
 export function createRules(config: Pick<Config, 'schema'>): readonly Rule[] {
-  return [createFrontmatterRule(config.schema), footnoteIntegrityRule, footnotePlacementRule, footnoteLinkRule];
+  return [createFrontmatterRule(config.schema), footnoteIntegrityRule, footnotePlacementRule, footnoteLinkRule, footnoteLengthRule];
 }
 
 export interface CheckResult {
