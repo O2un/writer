@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
 import { PostNotFoundError, PostOutsideContentError, readPost } from '../../content/posts.js';
-import { checkPost, SEVERITIES, type CheckResult, type RuleContext } from '../../rules/index.js';
+import { checkPost, createRules, SEVERITIES, type CheckResult, type RuleContext } from '../../rules/index.js';
 
 const inputSchema = {
   path: z
@@ -30,6 +30,8 @@ const outputSchema = {
 };
 
 export function registerCheckPost(server: McpServer, config: Config): void {
+  const rules = createRules(config);
+
   server.registerTool(
     'check_post',
     {
@@ -52,7 +54,7 @@ export function registerCheckPost(server: McpServer, config: Config): void {
 
       const postDir = path.dirname(file.absolutePath);
       const context: RuleContext = { assetExists: (relative) => existsSync(path.resolve(postDir, relative)) };
-      const result = checkPost(parsePost(file.source), context);
+      const result = checkPost(parsePost(file.source), context, rules);
       const output = { post: file.relativePath, passed: result.counts.error + result.counts.warning === 0, ...result };
 
       return {
