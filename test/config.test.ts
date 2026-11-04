@@ -42,6 +42,19 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT, WRITER_SCHEMA: ' ' })).toThrow(/WRITER_SCHEMA/);
   });
 
+  it('defaults to the claude-code provider with no model override', () => {
+    expect(loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT }).llm).toEqual({ provider: 'claude-code' });
+  });
+
+  it('reads the provider and model from the environment', () => {
+    const env = { SITE_ROOT: FIXTURE_SITE_ROOT, LLM_PROVIDER: 'anthropic-api', WRITER_MODEL: 'some-model' };
+    expect(loadConfig(env).llm).toEqual({ provider: 'anthropic-api', model: 'some-model' });
+  });
+
+  it('rejects an unknown provider', () => {
+    expect(() => loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT, LLM_PROVIDER: 'nope' })).toThrow(/LLM_PROVIDER is missing or invalid/);
+  });
+
   it('rejects a SITE_ROOT without a content folder', () => {
     expect(() => loadConfig({ SITE_ROOT: path.dirname(FIXTURE_SITE_ROOT) })).toThrow(/content folder not found/);
   });
