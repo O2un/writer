@@ -25,4 +25,11 @@ describe('parsePost', () => {
     expect(parsed.frontmatter.locate(['sub', 'key'])).toBe(4);
     expect(parsed.headings[0]).toMatchObject({ text: '절', line: 7 });
   });
+
+  it('reports footnote lines and clean definition text under CRLF with frontmatter', () => {
+    const source = '---\ntitle: a\n---\n\n본문.[^1]\n\n[^1]: 설명. — [t - s](https://x.y)\n'.replace(/\n/g, '\r\n');
+    const parsed = parsePost(source);
+    expect(parsed.references[0]).toMatchObject({ label: '1', line: 5 });
+    expect(parsed.definitions[0]).toEqual({ label: '1', line: 7, text: '설명. — [t - s](https://x.y)' });
+  });
 });
