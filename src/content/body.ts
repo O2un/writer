@@ -15,7 +15,6 @@ export interface FootnoteReference {
   label: string;
   line: number;
   resolved: boolean;
-  inImage: boolean;
 }
 
 export interface FootnoteLink {
@@ -102,11 +101,11 @@ function toOneLine(text: string): string {
 function collectReferences(tree: Root, body: string, defined: ReadonlySet<string>): FootnoteReference[] {
   const found: (FootnoteReference & { offset: number })[] = [];
 
-  const loose = (text: string, offset: number, line: number, inImage: boolean) => {
+  const loose = (text: string, offset: number, line: number) => {
     for (const match of text.matchAll(LOOSE_REFERENCE)) {
       const label = match[1]!;
       const markerLine = line + text.slice(0, match.index).split('\n').length - 1;
-      found.push({ label, line: markerLine, offset: offset + match.index, resolved: defined.has(normalizeLabel(label)), inImage });
+      found.push({ label, line: markerLine, offset: offset + match.index, resolved: defined.has(normalizeLabel(label)) });
     }
   };
 
@@ -117,13 +116,13 @@ function collectReferences(tree: Root, body: string, defined: ReadonlySet<string
 
     switch (node.type) {
       case 'footnoteReference':
-        found.push({ label: node.label ?? node.identifier, line, offset, resolved: true, inImage: false });
+        found.push({ label: node.label ?? node.identifier, line, offset, resolved: true });
         break;
       case 'text':
-        loose(node.value, offset, line, false);
+        loose(node.value, offset, line);
         break;
       case 'image':
-        loose(body.slice(offset, node.position?.end.offset), offset, line, true);
+        loose(body.slice(offset, node.position?.end.offset), offset, line);
         break;
     }
     return undefined;

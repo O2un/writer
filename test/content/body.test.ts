@@ -24,7 +24,7 @@ describe('parseBody', () => {
     });
 
     it('keeps markers without a definition as unresolved references', () => {
-      expect(parseBody('정의 없는 마커.[^ghost]').references).toEqual([{ label: 'ghost', line: 1, resolved: false, inImage: false }]);
+      expect(parseBody('정의 없는 마커.[^ghost]').references).toEqual([{ label: 'ghost', line: 1, resolved: false }]);
     });
 
     it('reports the line of an unresolved marker inside a multi-line paragraph', () => {
@@ -40,9 +40,9 @@ describe('parseBody', () => {
       expect(parseBody(['`[^1]` 인라인 코드', '', '```md', 'text[^2]', '```'].join('\n')).references).toEqual([]);
     });
 
-    it('finds markers in image alt text and titles', () => {
+    it('counts markers in image captions as references', () => {
       const parsed = parseBody(withReferences('![그림](./a.png "캡션[^img]")', definition('img')));
-      expect(parsed.references).toEqual([{ label: 'img', line: 1, resolved: true, inImage: true }]);
+      expect(parsed.references).toEqual([{ label: 'img', line: 1, resolved: true }]);
     });
 
     it('does not count markers inside definitions as references', () => {
