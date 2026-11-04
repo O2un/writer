@@ -38,6 +38,10 @@ describe('footnote-integrity rule', () => {
     expect(check('본문.[^1] 다시.[^1]\n\n[^1]: 설명.')).toEqual([]);
   });
 
+  it('pairs a marker in an image caption with its definition', () => {
+    expect(check('![그림](./a.png "캡션[^img]")\n\n[^img]: 설명.')).toEqual([]);
+  });
+
   it('ignores posts without footnotes', () => {
     expect(check('# 제목\n\n본문.')).toEqual([]);
   });
