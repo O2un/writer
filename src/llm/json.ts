@@ -8,7 +8,10 @@ export function parseJsonResponse<T>(text: string, schema: z.ZodType<T>): T {
   } catch {
     throw new LlmError('response is not valid JSON');
   }
+  return validateResponse(data, schema);
+}
 
+export function validateResponse<T>(data: unknown, schema: z.ZodType<T>): T {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {
     throw new LlmError(`response does not match the schema:\n${z.prettifyError(parsed.error)}`);
