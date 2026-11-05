@@ -25,6 +25,12 @@ describe('loadConfig', () => {
     expect(config.siteRoot).toBe(FIXTURE_SITE_ROOT);
     expect(config.contentDir).toBe(FIXTURE_CONTENT_DIR);
     expect(config.schema).toMatchObject({ type: 'object' });
+    expect(config.guidePath).toBe(path.join(FIXTURE_SITE_ROOT, '.claude', 'skills', 'devlog-content-writing', 'SKILL.md'));
+  });
+
+  it('starts without a guide file and resolves WRITER_GUIDE from SITE_ROOT', () => {
+    const config = loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT, WRITER_GUIDE: 'nope.md' });
+    expect(config.guidePath).toBe(path.join(FIXTURE_SITE_ROOT, 'nope.md'));
   });
 
   it('accepts another site layout through the environment', () => {

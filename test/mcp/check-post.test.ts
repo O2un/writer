@@ -20,8 +20,7 @@ describe('check_post', () => {
 
   it('is listed as a read-only tool', async () => {
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(['check_post']);
-    expect(tools[0]?.annotations?.readOnlyHint).toBe(true);
+    expect(tools.find((t) => t.name === 'check_post')?.annotations?.readOnlyHint).toBe(true);
   });
 
   it('returns a report for a post', async () => {
@@ -55,7 +54,7 @@ describe('check_post', () => {
 
   it('lists the templates in the input schema', async () => {
     const { tools } = await client.listTools();
-    const { template } = tools[0]?.inputSchema.properties as { template: { enum: string[]; default: string } };
+    const { template } = tools.find((t) => t.name === 'check_post')?.inputSchema.properties as { template: { enum: string[]; default: string } };
     expect(template.enum).toEqual(['article', 'escape-review']);
     expect(template.default).toBe('article');
   });

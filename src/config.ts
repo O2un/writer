@@ -7,6 +7,7 @@ export interface Config {
   siteRoot: string;
   contentDir: string;
   schema: Record<string, unknown>;
+  guidePath: string;
   llm: { provider: LlmProviderName; model?: string; claudeBin: string };
 }
 
@@ -14,6 +15,7 @@ const envSchema = z.object({
   SITE_ROOT: z.string().trim().min(1),
   WRITER_CONTENT_DIR: z.string().trim().min(1).default('src/content/blog'),
   WRITER_SCHEMA: z.string().trim().min(1).default('.astro/collections/blog.schema.json'),
+  WRITER_GUIDE: z.string().trim().min(1).default('.claude/skills/devlog-content-writing/SKILL.md'),
   LLM_PROVIDER: z.enum(LLM_PROVIDERS).default('claude-code'),
   WRITER_MODEL: z.string().trim().min(1).optional(),
   WRITER_CLAUDE_BIN: z.string().trim().min(1).default('claude'),
@@ -41,6 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     siteRoot,
     contentDir,
     schema: readSchema(path.resolve(siteRoot, parsed.data.WRITER_SCHEMA)),
+    guidePath: path.resolve(siteRoot, parsed.data.WRITER_GUIDE),
     llm: model ? { provider, model, claudeBin } : { provider, claudeBin },
   };
 }

@@ -2,7 +2,7 @@
 
 블로그 글의 초안 작성, 검토, 수정을 돕는 LLM 에이전트다. MCP 서버로 동작해서 Claude Code 같은 MCP 클라이언트에서 도구로 호출한다.
 
-지금은 LLM을 쓰지 않는 규칙 검사 도구 `check_post`까지 구현되어 있다. LLM 연결, 수정 루프, 초안 작성은 [PRD](docs/PRD.md)의 M2~M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
+지금은 규칙 검사 도구 `check_post`와 검토 도구 `review_post`까지 구현되어 있다. 수정 루프와 초안 작성은 [PRD](docs/PRD.md)의 M3~M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
 
 ## 요구 사항
 
@@ -27,6 +27,7 @@ npm run build
 | `SITE_ROOT` | 필수 | 사이트 레포 루트 |
 | `WRITER_CONTENT_DIR` | `src/content/blog` | 글 폴더 |
 | `WRITER_SCHEMA` | `.astro/collections/blog.schema.json` | frontmatter JSON Schema |
+| `WRITER_GUIDE` | `.claude/skills/devlog-content-writing/SKILL.md` | LLM 비평의 기준이 되는 글쓰기 안내 문서. 호출할 때마다 읽으므로 고치면 바로 반영된다. 없어도 서버는 시작하고 `review_post`만 오류를 낸다 |
 | `LLM_PROVIDER` | `claude-code` | LLM 호출 방식. `claude-code`(Claude 구독) 또는 `anthropic-api`(API 키, 사용량 과금) |
 | `WRITER_MODEL` | Provider 기본값 | 모델 ID |
 | `WRITER_CLAUDE_BIN` | `claude` | `claude-code` Provider가 실행할 파일. 셸을 거치지 않으므로 npm으로 설치한 Windows에서는 `claude.exe`의 전체 경로를 적는다 |
@@ -82,6 +83,29 @@ L6 [error] frontmatter: accent: must be equal to one of the allowed values
 
 없는 글이나 글 폴더 밖의 경로는 `isError: true`와 함께 `post not found: sample/nope`처럼 답한다.
 
+### `review_post`
+
+`check_post`와 같은 규칙 검사에 LLM 비평을 더한다. 파일을 고치지 않는다. 입력은 `check_post`와 같다. LLM을 호출하므로 사용 한도나 요금이 든다.
+
+비평 기준은 `WRITER_GUIDE` 문서에 템플릿의 `criteria`를 더한 것이다. 규칙 검사에서 위반이 나와도 비평은 돌린다.
+
+응답은 `check_post`에 `issues`가 붙은 모양이다. `passed`는 규칙 검사를 통과하고 `issues`가 비어 있을 때 `true`다. 지적의 `severity`는 작성자가 볼 우선순위다. 거짓일 가능성이 높은 주장은 `error`, 나머지는 `warning`이다. 비평 지적은 자동으로 고치지 않는다.
+
+```json
+{
+  "post": "sample/clean/index.md",
+  "template": "article",
+  "passed": false,
+  "counts": { "error": 0, "warning": 0, "info": 0 },
+  "violations": [],
+  "issues": [
+    { "severity": "error", "quote": "이건 뒤에서 다룬다", "problem": "forward reference", "suggestion": "remove the sentence" }
+  ]
+}
+```
+
+(위 값은 형식을 보여 주는 예시다.)
+
 ## 개발
 
 ```sh
@@ -97,5 +121,7 @@ src/
 ├─ content/        글 찾기, frontmatter 자르기와 해석, 본문 파싱
 ├─ rules/          규칙과 실행기. 글을 받아 위반 목록을 돌려주는 순수 함수
 ├─ templates/      글 템플릿 목록
+├─ llm/            LLM Provider
+├─ review/         LLM 비평 요청과 응답 형식
 └─ mcp/            MCP 서버와 도구 등록
 ```
