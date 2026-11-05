@@ -89,7 +89,7 @@ LLM 비평은 코드로 판정할 수 없는 항목만 맡는다. 예를 들면 
 - writer는 devlog 파일을 `draft: true` 초안으로만 저장한다. 기존 공개 글을 덮어쓰려면 명시적인 옵션이 있어야 한다.
 - API 키는 환경변수로만 받고 레포에 커밋하지 않는다.
 - **[확인 필요]** 구독(claude.ai 로그인)으로 돌리는 방식은 본인이 개인 툴에서 쓰는 용도로 한정되는 것으로 알고 있다. Agent SDK 기반 제품을 남에게 배포하면서 claude.ai 로그인을 쓰게 하는 것은 Anthropic이 허용하지 않는 것으로 기억한다. 구현 전에 현재 약관과 문서로 확인하고, README에 "남이 쓸 때는 `anthropic-api` Provider 사용"을 명시한다.
-- **[확인 필요]** `claude -p`에서 JSON 출력이나 스키마 강제를 어떤 플래그로 하는지, 자체 도구를 어떻게 끄는지 확인한다.
+- `claude-code` Provider는 `claude -p`에 `--output-format json`과 `--json-schema`를 넘겨 스키마를 강제하고, `--tools ""`와 `--strict-mcp-config`로 도구와 MCP 서버를 끈다.
 
 ## 9. 마일스톤
 

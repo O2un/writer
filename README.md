@@ -29,8 +29,11 @@ npm run build
 | `WRITER_SCHEMA` | `.astro/collections/blog.schema.json` | frontmatter JSON Schema |
 | `LLM_PROVIDER` | `claude-code` | LLM 호출 방식. `claude-code`(Claude 구독) 또는 `anthropic-api`(API 키, 사용량 과금) |
 | `WRITER_MODEL` | Provider 기본값 | 모델 ID |
+| `WRITER_CLAUDE_BIN` | `claude` | `claude-code` Provider가 실행할 파일. 셸을 거치지 않으므로 npm으로 설치한 Windows에서는 `claude.exe`의 전체 경로를 적는다 |
 
 값이 잘못되면 서버가 시작하지 않고 stderr에 이유를 출력한다.
+
+`claude-code` Provider는 본인이 개인 툴로 쓰는 용도다. 남이 쓸 때는 `anthropic-api` Provider를 쓴다.
 
 ## Claude Code에 연결
 

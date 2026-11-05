@@ -7,7 +7,7 @@ export interface Config {
   siteRoot: string;
   contentDir: string;
   schema: Record<string, unknown>;
-  llm: { provider: LlmProviderName; model?: string };
+  llm: { provider: LlmProviderName; model?: string; claudeBin: string };
 }
 
 const envSchema = z.object({
@@ -16,6 +16,7 @@ const envSchema = z.object({
   WRITER_SCHEMA: z.string().trim().min(1).default('.astro/collections/blog.schema.json'),
   LLM_PROVIDER: z.enum(LLM_PROVIDERS).default('claude-code'),
   WRITER_MODEL: z.string().trim().min(1).optional(),
+  WRITER_CLAUDE_BIN: z.string().trim().min(1).default('claude'),
 });
 
 export class ConfigError extends Error {
@@ -34,13 +35,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(`content folder not found: ${contentDir}`);
   }
 
-  const { LLM_PROVIDER: provider, WRITER_MODEL: model } = parsed.data;
+  const { LLM_PROVIDER: provider, WRITER_MODEL: model, WRITER_CLAUDE_BIN: claudeBin } = parsed.data;
 
   return {
     siteRoot,
     contentDir,
     schema: readSchema(path.resolve(siteRoot, parsed.data.WRITER_SCHEMA)),
-    llm: model ? { provider, model } : { provider },
+    llm: model ? { provider, model, claudeBin } : { provider, claudeBin },
   };
 }
 

@@ -43,12 +43,12 @@ describe('loadConfig', () => {
   });
 
   it('defaults to the claude-code provider with no model override', () => {
-    expect(loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT }).llm).toEqual({ provider: 'claude-code' });
+    expect(loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT }).llm).toEqual({ provider: 'claude-code', claudeBin: 'claude' });
   });
 
   it('reads the provider and model from the environment', () => {
-    const env = { SITE_ROOT: FIXTURE_SITE_ROOT, LLM_PROVIDER: 'anthropic-api', WRITER_MODEL: 'some-model' };
-    expect(loadConfig(env).llm).toEqual({ provider: 'anthropic-api', model: 'some-model' });
+    const env = { SITE_ROOT: FIXTURE_SITE_ROOT, LLM_PROVIDER: 'anthropic-api', WRITER_MODEL: 'some-model', WRITER_CLAUDE_BIN: 'C:/bin/claude.exe' };
+    expect(loadConfig(env).llm).toEqual({ provider: 'anthropic-api', model: 'some-model', claudeBin: 'C:/bin/claude.exe' });
   });
 
   it('rejects an unknown provider', () => {
