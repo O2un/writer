@@ -7,6 +7,7 @@ export interface Template {
   description: string;
   referencesHeading: string;
   sections: readonly string[];
+  criteria: readonly string[];
 }
 
 export const TEMPLATES: Record<TemplateId, Template> = {
@@ -14,10 +15,12 @@ export const TEMPLATES: Record<TemplateId, Template> = {
     description: 'General post',
     referencesHeading: '참고 자료',
     sections: [],
+    criteria: [],
   },
   'escape-review': {
     description: 'Escape room review',
     referencesHeading: '참고 자료',
     sections: ['방에 들어가서', '막힌 곳', '총평'],
+    criteria: [],
   },
 };
