@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
 import { readPost } from '../../content/posts.js';
-import { checkPost, createRules, SEVERITIES, type CheckResult } from '../../rules/index.js';
+import { checkPost, createRules, SEVERITIES, type CheckResult, type Violation } from '../../rules/index.js';
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_IDS, TEMPLATES, type TemplateId } from '../../templates/index.js';
 
 export const postInputSchema = {
@@ -37,18 +37,24 @@ export interface CheckReport extends CheckResult {
   template: TemplateId;
 }
 
+export interface LoadedPost {
+  source: string;
+  report: CheckReport;
+  check: (source: string) => CheckResult;
+}
+
 export function createPostChecker(config: Config) {
   const rules = createRules(config);
 
-  return async (input: string, template: TemplateId): Promise<{ source: string; report: CheckReport }> => {
+  return async (input: string, template: TemplateId): Promise<LoadedPost> => {
     const file = await readPost(config.contentDir, input);
     const postDir = path.dirname(file.absolutePath);
     const context = {
       assetExists: (relative: string) => existsSync(path.resolve(postDir, relative)),
       template: TEMPLATES[template],
     };
-    const result = checkPost(parsePost(file.source), context, rules);
-    return { source: file.source, report: { post: file.relativePath, template, ...result } };
+    const check = (source: string) => checkPost(parsePost(source), context, rules);
+    return { source: file.source, report: { post: file.relativePath, template, ...check(file.source) }, check };
   };
 }
 
@@ -58,6 +64,9 @@ export function rulesPassed({ counts }: CheckResult): boolean {
 
 export function formatReport({ post, counts, violations }: CheckReport): string {
   const summary = `${post}: error ${counts.error}, warning ${counts.warning}, info ${counts.info}`;
-  const lines = violations.map((v) => `${v.line ? `L${v.line}` : '-'} [${v.severity}] ${v.rule}: ${v.message}`);
-  return [summary, ...lines].join('\n');
+  return [summary, ...formatViolations(violations)].join('\n');
+}
+
+export function formatViolations(violations: readonly Violation[]): string[] {
+  return violations.map((v) => `${v.line ? `L${v.line}` : '-'} [${v.severity}] ${v.rule}: ${v.message}`);
 }

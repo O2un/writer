@@ -3,6 +3,7 @@ import type { Config } from '../config.js';
 import { createProvider, type LlmProvider } from '../llm/index.js';
 import { registerCheckPost } from './tools/check-post.js';
 import { registerReviewPost } from './tools/review-post.js';
+import { registerRevisePost } from './tools/revise-post.js';
 
 export const SERVER_INFO = { name: 'writer', version: '0.1.0' } as const;
 
@@ -10,5 +11,6 @@ export function createServer(config: Config, provider: LlmProvider = createProvi
   const server = new McpServer(SERVER_INFO);
   registerCheckPost(server, config);
   registerReviewPost(server, config, provider);
+  registerRevisePost(server, config, provider);
   return server;
 }
