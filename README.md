@@ -2,7 +2,7 @@
 
 블로그 글의 초안 작성, 검토, 수정을 돕는 LLM 에이전트다. MCP 서버로 동작해서 Claude Code 같은 MCP 클라이언트에서 도구로 호출한다.
 
-지금은 규칙 검사 도구 `check_post`와 검토 도구 `review_post`까지 구현되어 있다. 수정 루프와 초안 작성은 [PRD](docs/PRD.md)의 M3~M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
+지금은 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`까지 구현되어 있다. 초안 작성은 [PRD](docs/PRD.md)의 M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
 
 ## 요구 사항
 
@@ -106,6 +106,33 @@ L6 [error] frontmatter: accent: must be equal to one of the allowed values
 
 (위 값은 형식을 보여 주는 예시다.)
 
+### `revise_post`
+
+글 하나의 수정 목록을 만든다. 한 번 호출이 한 회차이고 파일은 고치지 않는다. LLM을 호출하므로 사용 한도나 요금이 든다.
+
+| 입력 | 설명 |
+|---|---|
+| `path`, `template` | `check_post`와 같다 |
+| `issues` | `review_post`의 지적 중 고칠 것. 생략하면 규칙 error만 고친다 |
+| `feedback` | 이번 회차에 대한 작성자의 지시 |
+
+고칠 것은 규칙 error, `issues`, `feedback`이다. 규칙 warning은 넘기지 않는다. 셋 다 없으면 LLM을 호출하지 않고 `status: "nothing-to-fix"`로 답한다.
+
+응답은 다음과 같다. 값은 형식을 보여 주는 예시다.
+
+```
+sample/clean/index.md: proposed, applied 1, rejected 1
+[edit 1] "title: '깨끗한 글'" -> "title: '규칙 예시'"
+[rejected: not-found] "없는 문장" -> "x"
+after edits: error 0, warning 0, info 0
+```
+
+- `applied`는 앞에서부터 순서대로 적용해야 한다. 각 `quote`는 앞의 수정을 적용한 글에서 정확히 한 번 나온다.
+- `rejected`는 `quote`가 글에 없거나(`not-found`) 여러 번 나와서(`ambiguous`) 뺀 수정이다.
+- `counts`와 `violations`는 `applied`를 모두 적용한 글을 검사한 결과다.
+
+작성자가 수정을 확인하고 승인한 것만 파일에 적용한다. 다음 회차는 적용된 파일을 다시 읽으므로, 남은 문제는 `feedback`과 함께 다시 호출하면 된다.
+
 ## 개발
 
 ```sh
@@ -123,5 +150,6 @@ src/
 ├─ templates/      글 템플릿 목록
 ├─ llm/            LLM Provider
 ├─ review/         LLM 비평 요청과 응답 형식
+├─ loop/           수정 한 회차: 수정 목록 요청, 적용, 재검사
 └─ mcp/            MCP 서버와 도구 등록
 ```
