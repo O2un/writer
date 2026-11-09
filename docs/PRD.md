@@ -53,7 +53,7 @@ Claude Code ──MCP(stdio)──▶ writer
 | 도구 | LLM 사용 | 설명 |
 |---|---|---|
 | `check_post` | X | 글 하나에 규칙 검사를 돌리고 위반 목록을 돌려준다 |
-| `list_posts` | X | `post-index.md`와 `src/content/blog`에서 기존 글과 소재를 조회한다 |
+| `list_posts` | X | 글 폴더의 모든 글을 frontmatter와 함께 돌려준다. 이미 다룬 소재와 링크할 글을 찾는 데 쓴다 |
 | `review_post` | O | 규칙 검사와 LLM 비평을 합쳐 검토 의견을 낸다. 파일은 고치지 않는다 |
 | `revise_post` | O | 규칙 error, 작성자가 고른 지적, 피드백을 반영한 수정 목록을 돌려준다. 한 번 호출이 한 회차다. 파일은 고치지 않는다 |
 | `draft_post` | O | 소재와 메모를 받아 초안을 만든다. `draft: true`로만 저장한다 |

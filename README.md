@@ -2,7 +2,7 @@
 
 블로그 글의 초안 작성, 검토, 수정을 돕는 LLM 에이전트다. MCP 서버로 동작해서 Claude Code 같은 MCP 클라이언트에서 도구로 호출한다.
 
-지금은 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`까지 구현되어 있다. 초안 작성은 [PRD](docs/PRD.md)의 M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
+지금은 글 목록 `list_posts`, 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`까지 구현되어 있다. 초안 작성은 [PRD](docs/PRD.md)의 M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
 
 ## 요구 사항
 
@@ -45,6 +45,21 @@ claude mcp add --scope local writer -e SITE_ROOT=/path/to/site -- node /path/to/
 서버는 시작할 때 스키마를 한 번만 읽는다. 코드를 고치면 `npm run build`를, 사이트 스키마가 바뀌면 스키마 파일을 다시 만든 뒤 세션을 다시 시작한다.
 
 ## 도구
+
+### `list_posts`
+
+글 폴더의 `.md`, `.mdx` 파일을 모두 frontmatter와 함께 돌려준다. 초안도 포함한다. 이미 다룬 소재나 링크할 글을 찾을 때 쓴다. 입력은 없고, LLM을 쓰지 않고 파일을 고치지 않는다.
+
+응답은 경로 순이다. `post`는 다른 도구의 `path`로 그대로 넘길 수 있다. frontmatter를 읽지 못한 글은 빼지 않고 이유를 붙인다.
+
+```
+3 posts
+notes/plain.md [error] frontmatter missing
+sample/broken/index.md {"title":"깨진 글","pubDate":"2026-10-30",...}
+sample/clean/index.md {"title":"깨끗한 글","description":"규칙을 모두 지킨 예시 글",...}
+```
+
+`structuredContent`는 `{ "posts": [{ "post": "...", "frontmatter": {...} }, { "post": "...", "error": "..." }] }` 모양이다.
 
 ### `check_post`
 
