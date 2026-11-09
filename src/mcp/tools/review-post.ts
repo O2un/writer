@@ -3,7 +3,8 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { LlmProvider } from '../../llm/index.js';
-import { critiquePost, critiqueSchema, readGuide, type CritiqueIssue } from '../../review/critique.js';
+import { critiquePost, critiqueSchema, type CritiqueIssue } from '../../review/critique.js';
+import { readGuide } from '../../writing/principles.js';
 import { checkOutputSchema, createPostChecker, formatReport, postInputSchema, rulesPassed, templateById } from './post-check.js';
 
 const reviewFields = {

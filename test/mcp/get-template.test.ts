@@ -51,6 +51,18 @@ describe('get_template', () => {
     expect(instructions).toContain('open it with a browser tool');
     expect(instructions).toContain('Leave out optional fields you have no value for, without a TODO');
     expect(instructions).toContain('not into the file');
+    expect(instructions).toContain('Writing principles:');
+    expect(instructions).toContain('The post explains its subject, never itself');
+  });
+
+  it('returns the site guide, or null when the site has none', async () => {
+    expect((await call('article')).structuredContent).toMatchObject({ guide: expect.stringContaining('Fixture guide') });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const bare = new Client({ name: 'test', version: '0.0.0' });
+    await Promise.all([createServer({ ...FIXTURE_CONFIG, guidePath: 'nope.md' }, provider).connect(serverTransport), bare.connect(clientTransport)]);
+    const result = await bare.callTool({ name: 'get_template', arguments: {} });
+    expect(result.structuredContent).toMatchObject({ guide: null });
+    await bare.close();
   });
 
   it('prints the guidance as text', async () => {

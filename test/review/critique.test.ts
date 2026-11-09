@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildCritiqueRequest, critiqueSchema, readGuide } from '../../src/review/critique.js';
+import { buildCritiqueRequest, critiqueSchema } from '../../src/review/critique.js';
+import { readGuide } from '../../src/writing/principles.js';
 import { FIXTURE_CONFIG } from '../fixtures.js';
 import { FIXTURE_SITE_ROOT } from '../fixtures.js';
 
@@ -12,6 +13,18 @@ describe('buildCritiqueRequest', () => {
     expect(system).toContain('<guide>\n가이드 내용\n</guide>');
     expect(system).not.toContain('글 내용');
     expect(prompt).toBe('<post>\n글 내용\n</post>');
+  });
+
+  it('reviews against the built-in principles without a site guide', () => {
+    const { system } = buildCritiqueRequest(null, template, '글');
+    expect(system).toContain('Writing principles:');
+    expect(system).toContain('The post explains its subject, never itself');
+    expect(system).toContain('written that way from the start');
+    expect(system).not.toContain('<guide>');
+  });
+
+  it('asks for shortened names to be spelled out at their first mention', () => {
+    expect(buildCritiqueRequest('가이드', template, '글').system).toContain('shortened name or nickname');
   });
 
   it('adds the template criteria when there are any', () => {
@@ -41,7 +54,7 @@ describe('readGuide', () => {
     await expect(readGuide(path.join(FIXTURE_SITE_ROOT, 'guide.md'))).resolves.toContain('Fixture guide');
   });
 
-  it('names the setting when the file cannot be read', async () => {
-    await expect(readGuide('nope.md')).rejects.toThrow('cannot read guide file: nope.md. Check WRITER_GUIDE');
+  it('returns null when the site has no guide file', async () => {
+    await expect(readGuide('nope.md')).resolves.toBeNull();
   });
 });

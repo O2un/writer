@@ -75,12 +75,13 @@ describe('review_post', () => {
     expect(completeJson).not.toHaveBeenCalled();
   });
 
-  it('does not call the LLM without a guide file', async () => {
+  it('reviews with the built-in principles when the site has no guide file', async () => {
     const completeJson = await connect(() => ({ issues: [] }), { ...FIXTURE_CONFIG, guidePath: 'nope.md' });
     const result = await call('sample/clean');
-    expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: expect.stringMatching(/Check WRITER_GUIDE/) }]);
-    expect(completeJson).not.toHaveBeenCalled();
+    expect(result.isError).toBeFalsy();
+    const [request] = completeJson.mock.calls[0]!;
+    expect(request.system).toContain('Writing principles:');
+    expect(request.system).not.toContain('<guide>');
   });
 
   it('answers with a tool error when the LLM fails', async () => {

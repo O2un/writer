@@ -3,9 +3,10 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { Template } from '../../templates/index.js';
+import { formatPrinciples, readGuide, WRITING_PRINCIPLES } from '../../writing/principles.js';
 import { templateById, templateInput } from './post-check.js';
 
-const guide = {
+const item = {
   research: z.string().optional().describe('Public facts to look up and cite with footnotes'),
   prompt: z.string().optional().describe('First-hand content for the author. Leave it as a TODO comment'),
 };
@@ -14,9 +15,10 @@ const outputSchema = {
   template: z.string(),
   description: z.string(),
   referencesHeading: z.string().describe('Heading of the final section that holds the footnote definitions'),
-  frontmatter: z.record(z.string(), z.object(guide)).describe('Guidance for frontmatter fields, keyed by field path'),
-  sections: z.array(z.object({ heading: z.string(), ...guide })).describe('Sections such posts usually have. A guideline, not a rule'),
-  instructions: z.string().describe('How to draft with this template'),
+  frontmatter: z.record(z.string(), z.object(item)).describe('Guidance for frontmatter fields, keyed by field path'),
+  sections: z.array(z.object({ heading: z.string(), ...item })).describe('Sections such posts usually have. A guideline, not a rule'),
+  instructions: z.string().describe('How to draft with this template, including the writing principles'),
+  guide: z.string().nullable().describe("The site's own writing guide. Follow it together with the instructions. Null when the site has none"),
 };
 
 export function draftingInstructions(template: Template): string {
@@ -31,6 +33,9 @@ export function draftingInstructions(template: Template): string {
     '- Problems outside the post, such as a value the site schema does not allow, go to the author in your reply, not into the file.',
     '- Call list_posts first to avoid repeating a topic and to find posts to link.',
     '- Save a new post with draft: true, never over an existing post, then run check_post on it.',
+    '',
+    'Writing principles:',
+    formatPrinciples(WRITING_PRINCIPLES),
   ].join('\n');
 }
 
@@ -49,16 +54,17 @@ export function registerGetTemplate(server: McpServer, config: Config): void {
       const template = templateById(config.templates, id);
       const { description, referencesHeading, frontmatter, sections } = template;
       const instructions = draftingInstructions(template);
+      const guide = await readGuide(config.guidePath);
 
       return {
-        content: [{ type: 'text', text: formatTemplate(id, template, instructions) }],
-        structuredContent: { template: id, description, referencesHeading, frontmatter, sections, instructions },
+        content: [{ type: 'text', text: formatTemplate(id, template, instructions, guide) }],
+        structuredContent: { template: id, description, referencesHeading, frontmatter, sections, instructions, guide },
       };
     },
   );
 }
 
-function formatTemplate(id: string, { description, frontmatter, sections }: Template, instructions: string): string {
+function formatTemplate(id: string, { description, frontmatter, sections }: Template, instructions: string, guide: string | null): string {
   const guideLines = (item: { research?: string | undefined; prompt?: string | undefined }) => [
     ...(item.research ? [`  research: ${item.research}`] : []),
     ...(item.prompt ? [`  prompt: ${item.prompt}`] : []),
@@ -70,5 +76,6 @@ function formatTemplate(id: string, { description, frontmatter, sections }: Temp
     ...(sections.length ? ['', 'sections:', ...sections.flatMap((s) => [`- ${s.heading}`, ...guideLines(s)])] : []),
     '',
     instructions,
+    ...(guide ? ['', 'Site writing guide:', guide] : []),
   ].join('\n');
 }

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { LlmProvider, LlmRequest } from '../llm/index.js';
 import type { CritiqueIssue } from '../review/critique.js';
 import type { CheckResult, Violation } from '../rules/index.js';
+import { formatPrinciples, guideBlock, REVISION_PRINCIPLES, WRITING_PRINCIPLES } from '../writing/principles.js';
 
 export const editsSchema = z.object({
   edits: z.array(
@@ -21,7 +22,7 @@ export interface RejectedEdit extends PostEdit {
 
 export interface ReviseInput {
   provider: LlmProvider;
-  guide: string;
+  guide: string | null;
   source: string;
   check: (source: string) => CheckResult;
   issues: readonly SelectedIssue[];
@@ -36,7 +37,7 @@ export interface ReviseResult {
   violations: Violation[];
 }
 
-const INSTRUCTIONS = `You fix specific problems in a blog post, following the site's guide below.
+const INSTRUCTIONS = `You fix specific problems in a blog post, following the writing principles below.
 
 - Change only what the listed problems and the author's feedback require. Leave every other sentence as it is and keep the author's voice.
 - Return edits. Each quote is exact text from the current post, stays within one line, and appears exactly once. Include enough surrounding text to make it unique.
@@ -57,13 +58,14 @@ export async function revise({ provider, guide, source, check, issues, feedback 
   return { status: 'proposed', revised, applied, rejected, violations: check(revised).violations };
 }
 
-export function buildReviseRequest(guide: string, source: string, problems: readonly string[], feedback?: string): LlmRequest {
+export function buildReviseRequest(guide: string | null, source: string, problems: readonly string[], feedback?: string): LlmRequest {
   const parts = [
     `<post>\n${source}\n</post>`,
     ...(problems.length > 0 ? [`Problems to fix:\n${problems.map((problem) => `- ${problem}`).join('\n')}`] : []),
     ...(feedback ? [`Author feedback:\n<feedback>\n${feedback}\n</feedback>`] : []),
   ];
-  return { system: `${INSTRUCTIONS}\n\n<guide>\n${guide}\n</guide>`, prompt: parts.join('\n\n') };
+  const system = [INSTRUCTIONS, `Writing principles:\n${formatPrinciples([...WRITING_PRINCIPLES, ...REVISION_PRINCIPLES])}`, ...guideBlock(guide)];
+  return { system: system.join('\n\n'), prompt: parts.join('\n\n') };
 }
 
 export function applyEdits(source: string, edits: readonly PostEdit[]): { source: string; applied: PostEdit[]; rejected: RejectedEdit[] } {

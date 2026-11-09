@@ -28,8 +28,8 @@ npm run build
 | `SITE_ROOT` | 필수 | 사이트 레포 루트 |
 | `WRITER_CONTENT_DIR` | `src/content/blog` | 글 폴더 |
 | `WRITER_SCHEMA` | `.astro/collections/blog.schema.json` | frontmatter JSON Schema |
-| `WRITER_GUIDE` | `.claude/skills/devlog-content-writing/SKILL.md` | LLM 비평의 기준이 되는 글쓰기 안내 문서. 호출할 때마다 읽으므로 고치면 바로 반영된다. 없어도 서버는 시작하고 `review_post`만 오류를 낸다 |
-| `WRITER_TEMPLATES` | `writer.templates.json` | 글 템플릿 파일 |
+| `WRITER_GUIDE` | `writer.guide.md` | 사이트 글쓰기 안내 문서. writer의 내장 원칙에 더해 초안, 검토, 수정에 쓰인다. 호출할 때마다 읽으므로 고치면 바로 반영된다. 없으면 내장 원칙만 쓴다 |
+| `WRITER_TEMPLATES` | `writer.templates.json` | 글 템플릿 파일. 없으면 내장 `article` 템플릿 하나만 쓴다 |
 | `LLM_PROVIDER` | `claude-code` | LLM 호출 방식. `claude-code`(Claude 구독) 또는 `anthropic-api`(API 키, 사용량 과금) |
 | `WRITER_MODEL` | Provider 기본값 | 모델 ID |
 | `WRITER_CLAUDE_BIN` | `claude` | `claude-code` Provider가 실행할 파일. 셸을 거치지 않으므로 npm으로 설치한 Windows에서는 `claude.exe`의 전체 경로를 적는다 |
@@ -75,6 +75,14 @@ claude mcp add --scope local writer -e SITE_ROOT=/path/to/site -- node /path/to/
 ```
 
 서버는 시작할 때 스키마와 템플릿 파일을 한 번만 읽는다. 코드를 고치면 `npm run build`를, 사이트 스키마가 바뀌면 스키마 파일을 다시 만든 뒤, 템플릿 파일을 고친 뒤에도 세션을 다시 시작한다.
+
+## 사이트에 의존하지 않는 것
+
+writer는 사이트의 에이전트 지시 문서(스킬, `CLAUDE.md` 등)를 읽지 않는다. 그런 문서가 없어도 같은 순서와 기준으로 돈다.
+
+- **작업 순서**: 서버가 연결될 때 MCP instructions로 호출한 쪽에 알린다. 새 글은 `list_posts`와 `get_template`으로 시작하고, 저장할 때마다 `check_post`, 준비되면 `review_post`, 고를 때마다 `revise_post` 순서다.
+- **글쓰기 원칙**: 지어내지 않기, 작성자 말투 유지, 글이 자기 자신을 설명하지 않기, 줄임말은 처음에 전체 이름으로, 각주 설명은 출처가 뒷받침하는 것만, 수정 흔적 남기지 않기. `src/writing/principles.ts`에 있고 초안, 검토, 수정에 모두 들어간다.
+- **사이트 기준**: 사이트마다 다른 것만 `writer.guide.md`와 `writer.templates.json`에 둔다.
 
 ## 도구
 
@@ -155,7 +163,7 @@ L6 [error] frontmatter: accent: must be equal to one of the allowed values
 
 `check_post`와 같은 규칙 검사에 LLM 비평을 더한다. 파일을 고치지 않는다. 입력은 `check_post`와 같다. LLM을 호출하므로 사용 한도나 요금이 든다.
 
-비평 기준은 `WRITER_GUIDE` 문서에 템플릿의 `criteria`를 더한 것이다. 규칙 검사에서 위반이 나와도 비평은 돌린다.
+비평 기준은 writer의 내장 글쓰기 원칙에 `WRITER_GUIDE` 문서와 템플릿의 `criteria`를 더한 것이다. 규칙 검사에서 위반이 나와도 비평은 돌린다.
 
 응답은 `check_post`에 `issues`가 붙은 모양이다. `passed`는 규칙 검사를 통과하고 `issues`가 비어 있을 때 `true`다. 지적의 `severity`는 작성자가 볼 우선순위다. 거짓일 가능성이 높은 주장은 `error`, 나머지는 `warning`이다. 비평 지적은 자동으로 고치지 않는다.
 
@@ -217,6 +225,7 @@ src/
 ├─ rules/          규칙과 실행기. 글을 받아 위반 목록을 돌려주는 순수 함수
 ├─ templates/      템플릿 파일 읽기
 ├─ llm/            LLM Provider
+├─ writing/        내장 글쓰기 원칙, 사이트 안내 문서 읽기
 ├─ review/         LLM 비평 요청과 응답 형식
 ├─ loop/           수정 한 회차: 수정 목록 요청, 적용, 재검사
 └─ mcp/            MCP 서버와 도구 등록

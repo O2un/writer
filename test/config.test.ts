@@ -33,15 +33,20 @@ describe('loadConfig', () => {
     expect(loadConfig(site(root, { WRITER_TEMPLATES: 'other.json' })).templates.ids).toEqual(['b']);
   });
 
+  it('falls back to a built-in article template without a templates file', () => {
+    const root = siteWithSchema('{"type":"object"}');
+    rmSync(path.join(root, 'writer.templates.json'));
+    const { templates } = loadConfig(site(root));
+    expect(templates.ids).toEqual(['article']);
+    expect(templates.byId.article?.referencesHeading).toBe('References');
+  });
+
   it.each([
-    ['a missing file', null, /templates file not found/],
     ['broken JSON', '{', /templates file is not valid JSON/],
     ['an invalid template', '{"default":"a","templates":{"a":{}}}', /templates\.a\.description/],
   ])('rejects a templates file with %s', (_, content, message) => {
     const root = siteWithSchema('{"type":"object"}');
-    const file = path.join(root, 'writer.templates.json');
-    if (content === null) rmSync(file);
-    else writeFileSync(file, content);
+    writeFileSync(path.join(root, 'writer.templates.json'), content);
     expect(() => loadConfig(site(root))).toThrow(ConfigError);
     expect(() => loadConfig(site(root))).toThrow(message);
   });
@@ -55,7 +60,7 @@ describe('loadConfig', () => {
     expect(config.siteRoot).toBe(FIXTURE_SITE_ROOT);
     expect(config.contentDir).toBe(FIXTURE_CONTENT_DIR);
     expect(config.schema).toMatchObject({ type: 'object' });
-    expect(config.guidePath).toBe(path.join(FIXTURE_SITE_ROOT, '.claude', 'skills', 'devlog-content-writing', 'SKILL.md'));
+    expect(config.guidePath).toBe(path.join(FIXTURE_SITE_ROOT, 'writer.guide.md'));
   });
 
   it('starts without a guide file and resolves WRITER_GUIDE from SITE_ROOT', () => {

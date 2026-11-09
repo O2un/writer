@@ -17,7 +17,7 @@ const envSchema = z.object({
   SITE_ROOT: z.string().trim().min(1),
   WRITER_CONTENT_DIR: z.string().trim().min(1).default('src/content/blog'),
   WRITER_SCHEMA: z.string().trim().min(1).default('.astro/collections/blog.schema.json'),
-  WRITER_GUIDE: z.string().trim().min(1).default('.claude/skills/devlog-content-writing/SKILL.md'),
+  WRITER_GUIDE: z.string().trim().min(1).default('writer.guide.md'),
   WRITER_TEMPLATES: z.string().trim().min(1).default('writer.templates.json'),
   LLM_PROVIDER: z.enum(LLM_PROVIDERS).default('claude-code'),
   WRITER_MODEL: z.string().trim().min(1).optional(),

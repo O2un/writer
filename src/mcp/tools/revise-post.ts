@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { LlmProvider } from '../../llm/index.js';
 import { editsSchema, revise, type ReviseResult } from '../../loop/revise.js';
-import { readGuide } from '../../review/critique.js';
+import { readGuide } from '../../writing/principles.js';
 import { checkOutputSchema, createPostChecker, formatViolations, postInputSchema } from './post-check.js';
 
 const reviseInput = {

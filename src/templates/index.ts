@@ -40,8 +40,13 @@ export class TemplatesError extends Error {
   override name = 'TemplatesError';
 }
 
+export const BUILTIN_TEMPLATES: Templates = parseTemplates({
+  default: 'article',
+  templates: { article: { description: 'General post', referencesHeading: 'References' } },
+});
+
 export function readTemplates(file: string): Templates {
-  if (!existsSync(file)) throw new TemplatesError(`templates file not found: ${file}`);
+  if (!existsSync(file)) return BUILTIN_TEMPLATES;
 
   let raw: unknown;
   try {
