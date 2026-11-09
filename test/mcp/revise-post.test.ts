@@ -99,7 +99,7 @@ describe('revise_post', () => {
   it('is listed as a read-only tool that reaches outside', async () => {
     await connect([]);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(['list_posts', 'check_post', 'review_post', 'revise_post']);
+    expect(tools.map((t) => t.name)).toEqual(['list_posts', 'get_template', 'check_post', 'review_post', 'revise_post']);
     expect(tools.find((t) => t.name === 'revise_post')?.annotations).toMatchObject({ readOnlyHint: true, openWorldHint: true });
   });
 });

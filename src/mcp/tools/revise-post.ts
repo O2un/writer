@@ -7,8 +7,7 @@ import { editsSchema, revise, type ReviseResult } from '../../loop/revise.js';
 import { readGuide } from '../../review/critique.js';
 import { checkOutputSchema, createPostChecker, formatViolations, postInputSchema } from './post-check.js';
 
-const inputSchema = {
-  ...postInputSchema,
+const reviseInput = {
   issues: z
     .array(z.object({ quote: z.string(), problem: z.string(), suggestion: z.string() }))
     .default([])
@@ -18,8 +17,7 @@ const inputSchema = {
 
 const edit = editsSchema.shape.edits.element;
 
-const outputSchema = {
-  ...checkOutputSchema,
+const reviseOutput = {
   status: z.enum(['nothing-to-fix', 'proposed']).describe('nothing-to-fix: no rule errors, issues or feedback, so the LLM was not called'),
   applied: z.array(edit).describe('Edits to apply in order. Each quote appears exactly once in the text after the earlier edits'),
   rejected: z.array(edit.extend({ reason: z.enum(['not-found', 'ambiguous']) })).describe('Edits left out because their quote was missing or not unique'),
@@ -34,8 +32,8 @@ export function registerRevisePost(server: McpServer, config: Config, provider: 
       title: 'Revise post',
       description:
         'Proposes edits for one post: rule errors, the chosen critique issues and the author feedback. Runs one round and does not modify files. Show the edits to the author, apply the approved ones in order, then call again with feedback for another round. Counts and violations describe the post after all proposed edits. Uses LLM quota and can take minutes.',
-      inputSchema,
-      outputSchema,
+      inputSchema: { ...postInputSchema(config.templates), ...reviseInput },
+      outputSchema: { ...checkOutputSchema(config.templates), ...reviseOutput },
       annotations: { readOnlyHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ path, template, issues, feedback }): Promise<CallToolResult> => {

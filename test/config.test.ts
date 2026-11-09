@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../src/config.js';
 import { FIXTURE_CONTENT_DIR, FIXTURE_SITE_ROOT } from './fixtures.js';
 
+const TEMPLATES_JSON = JSON.stringify({ default: 'a', templates: { a: { description: 'A', referencesHeading: '참고 자료' } } });
+
 describe('loadConfig', () => {
   const temps: string[] = [];
 
@@ -13,8 +15,36 @@ describe('loadConfig', () => {
     temps.push(root);
     mkdirSync(path.join(root, 'posts'));
     writeFileSync(path.join(root, 'schema.json'), content);
+    writeFileSync(path.join(root, 'writer.templates.json'), TEMPLATES_JSON);
     return root;
   };
+
+  const site = (root: string, extra: Record<string, string> = {}) => ({ SITE_ROOT: root, WRITER_CONTENT_DIR: 'posts', WRITER_SCHEMA: 'schema.json', ...extra });
+
+  it('loads the site templates file', () => {
+    const { templates } = loadConfig({ SITE_ROOT: FIXTURE_SITE_ROOT });
+    expect(templates.ids).toEqual(['article', 'escape-review']);
+    expect(templates.defaultId).toBe('article');
+  });
+
+  it('reads WRITER_TEMPLATES from SITE_ROOT', () => {
+    const root = siteWithSchema('{"type":"object"}');
+    writeFileSync(path.join(root, 'other.json'), TEMPLATES_JSON.replaceAll('"a"', '"b"'));
+    expect(loadConfig(site(root, { WRITER_TEMPLATES: 'other.json' })).templates.ids).toEqual(['b']);
+  });
+
+  it.each([
+    ['a missing file', null, /templates file not found/],
+    ['broken JSON', '{', /templates file is not valid JSON/],
+    ['an invalid template', '{"default":"a","templates":{"a":{}}}', /templates\.a\.description/],
+  ])('rejects a templates file with %s', (_, content, message) => {
+    const root = siteWithSchema('{"type":"object"}');
+    const file = path.join(root, 'writer.templates.json');
+    if (content === null) rmSync(file);
+    else writeFileSync(file, content);
+    expect(() => loadConfig(site(root))).toThrow(ConfigError);
+    expect(() => loadConfig(site(root))).toThrow(message);
+  });
 
   afterEach(() => {
     for (const root of temps.splice(0)) rmSync(root, { recursive: true });

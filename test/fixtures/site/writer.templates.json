@@ -1,0 +1,22 @@
+{
+  "default": "article",
+  "templates": {
+    "article": {
+      "description": "General post",
+      "referencesHeading": "참고 자료"
+    },
+    "escape-review": {
+      "description": "Escape room review",
+      "referencesHeading": "참고 자료",
+      "frontmatter": {
+        "escape.cafe": { "research": "매장 이름" },
+        "escape.players": { "prompt": "함께 간 인원" }
+      },
+      "sections": [
+        { "heading": "방에 들어가서", "research": "공식 시놉시스", "prompt": "첫인상과 분위기" },
+        { "heading": "총평", "prompt": "추천할 대상" }
+      ],
+      "criteria": ["기준 하나"]
+    }
+  }
+}

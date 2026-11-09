@@ -5,13 +5,14 @@ import { footnoteLengthRule } from './footnote-length.js';
 import { footnoteLinkRule } from './footnote-link.js';
 import { footnotePlacementRule } from './footnote-placement.js';
 import { createFrontmatterRule } from './frontmatter.js';
+import { todoRule } from './todo.js';
 import { SEVERITIES, type Rule, type RuleContext, type Severity, type Violation } from './types.js';
 
 export type { Rule, RuleContext, Severity, Violation } from './types.js';
 export { SEVERITIES } from './types.js';
 
 export function createRules(config: Pick<Config, 'schema'>): readonly Rule[] {
-  return [createFrontmatterRule(config.schema), footnoteIntegrityRule, footnotePlacementRule, footnoteLinkRule, footnoteLengthRule];
+  return [createFrontmatterRule(config.schema), footnoteIntegrityRule, footnotePlacementRule, footnoteLinkRule, footnoteLengthRule, todoRule];
 }
 
 export interface CheckResult {

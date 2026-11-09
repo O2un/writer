@@ -30,8 +30,14 @@ export interface FootnoteDefinition {
   links: FootnoteLink[];
 }
 
+export interface HtmlComment {
+  text: string;
+  line: number;
+}
+
 export interface Body {
   headings: Heading[];
+  comments: HtmlComment[];
   references: FootnoteReference[];
   definitions: FootnoteDefinition[];
 }
@@ -48,6 +54,7 @@ export function parseBody(body: string): Body {
 
   return {
     headings: collectHeadings(tree),
+    comments: collectComments(tree),
     references: collectReferences(tree, body, defined),
     definitions,
   };
@@ -63,6 +70,19 @@ function collectHeadings(tree: Root): Heading[] {
     headings.push({ depth: node.depth, text: toString(node).trim(), line: node.position?.start.line ?? 1 });
   });
   return headings;
+}
+
+const HTML_COMMENT = /<!--([\s\S]*?)-->/g;
+
+function collectComments(tree: Root): HtmlComment[] {
+  const comments: HtmlComment[] = [];
+  visit(tree, 'html', (node) => {
+    const line = node.position?.start.line ?? 1;
+    for (const match of node.value.matchAll(HTML_COMMENT)) {
+      comments.push({ text: match[1]!.trim(), line: line + node.value.slice(0, match.index).split('\n').length - 1 });
+    }
+  });
+  return comments;
 }
 
 function collectDefinitions(tree: Root, body: string): FootnoteDefinition[] {
