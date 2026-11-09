@@ -5,36 +5,44 @@ import type { Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
 import { readPost } from '../../content/posts.js';
 import { checkPost, createRules, SEVERITIES, type CheckResult, type Violation } from '../../rules/index.js';
-import { DEFAULT_TEMPLATE_ID, TEMPLATE_IDS, TEMPLATES, type TemplateId } from '../../templates/index.js';
+import type { Template, Templates } from '../../templates/index.js';
 
-export const postInputSchema = {
-  path: z
-    .string()
-    .min(1)
-    .describe('Post path relative to the content folder. Accepts a post folder (e.g. notes/hello) or a file (e.g. notes/hello/index.md)'),
-  template: z
-    .enum(TEMPLATE_IDS)
-    .default(DEFAULT_TEMPLATE_ID)
-    .describe(`Post template to check against. ${TEMPLATE_IDS.map((id) => `${id}: ${TEMPLATES[id].description}`).join('; ')}`),
-};
+export function templateInput({ ids, defaultId, byId }: Templates) {
+  return z
+    .enum(ids)
+    .default(defaultId)
+    .describe(`Post template. ${ids.map((id) => `${id}: ${byId[id]?.description}`).join('; ')}`);
+}
 
-export const checkOutputSchema = {
-  post: z.string().describe('File path relative to the content folder'),
-  template: z.enum(TEMPLATE_IDS).describe('Template the post was checked against'),
-  counts: z.object({ error: z.number().int(), warning: z.number().int(), info: z.number().int() }),
-  violations: z.array(
-    z.object({
-      rule: z.string(),
-      severity: z.enum(SEVERITIES),
-      message: z.string(),
-      line: z.number().int().optional(),
-    }),
-  ),
-};
+export function postInputSchema(templates: Templates) {
+  return {
+    path: z
+      .string()
+      .min(1)
+      .describe('Post path relative to the content folder. Accepts a post folder (e.g. notes/hello) or a file (e.g. notes/hello/index.md)'),
+    template: templateInput(templates),
+  };
+}
+
+export function checkOutputSchema({ ids }: Templates) {
+  return {
+    post: z.string().describe('File path relative to the content folder'),
+    template: z.enum(ids).describe('Template the post was checked against'),
+    counts: z.object({ error: z.number().int(), warning: z.number().int(), info: z.number().int() }),
+    violations: z.array(
+      z.object({
+        rule: z.string(),
+        severity: z.enum(SEVERITIES),
+        message: z.string(),
+        line: z.number().int().optional(),
+      }),
+    ),
+  };
+}
 
 export interface CheckReport extends CheckResult {
   post: string;
-  template: TemplateId;
+  template: string;
 }
 
 export interface LoadedPost {
@@ -46,16 +54,22 @@ export interface LoadedPost {
 export function createPostChecker(config: Config) {
   const rules = createRules(config);
 
-  return async (input: string, template: TemplateId): Promise<LoadedPost> => {
+  return async (input: string, template: string): Promise<LoadedPost> => {
     const file = await readPost(config.contentDir, input);
     const postDir = path.dirname(file.absolutePath);
     const context = {
       assetExists: (relative: string) => existsSync(path.resolve(postDir, relative)),
-      template: TEMPLATES[template],
+      template: templateById(config.templates, template),
     };
     const check = (source: string) => checkPost(parsePost(source), context, rules);
     return { source: file.source, report: { post: file.relativePath, template, ...check(file.source) }, check };
   };
+}
+
+export function templateById({ byId }: Templates, id: string): Template {
+  const template = byId[id];
+  if (!template) throw new Error(`unknown template: ${id}`);
+  return template;
 }
 
 export function rulesPassed({ counts }: CheckResult): boolean {

@@ -2,12 +2,13 @@
 
 블로그 글의 초안 작성, 검토, 수정을 돕는 LLM 에이전트다. MCP 서버로 동작해서 Claude Code 같은 MCP 클라이언트에서 도구로 호출한다.
 
-지금은 글 목록 `list_posts`, 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`까지 구현되어 있다. 초안 작성은 [PRD](docs/PRD.md)의 M4에서 이어진다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
+도구는 글 목록 `list_posts`, 초안 템플릿 `get_template`, 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`가 있다. 초안은 호출한 쪽이 `get_template`을 받아 조사하고 쓴다. 서버 안에서 LLM을 부르는 도구는 검토와 수정뿐이다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
 
 ## 요구 사항
 
 - Node.js 22 이상
 - 검사할 사이트의 레포와, 글의 frontmatter를 정의한 JSON Schema 파일
+- 사이트 레포의 템플릿 파일 (아래 [템플릿 파일](#템플릿-파일))
 
 Astro 사이트라면 `astro sync`, `astro dev`, `astro build` 중 하나를 돌렸을 때 스키마 파일이 `.astro/collections/`에 만들어진다.
 
@@ -28,6 +29,7 @@ npm run build
 | `WRITER_CONTENT_DIR` | `src/content/blog` | 글 폴더 |
 | `WRITER_SCHEMA` | `.astro/collections/blog.schema.json` | frontmatter JSON Schema |
 | `WRITER_GUIDE` | `.claude/skills/devlog-content-writing/SKILL.md` | LLM 비평의 기준이 되는 글쓰기 안내 문서. 호출할 때마다 읽으므로 고치면 바로 반영된다. 없어도 서버는 시작하고 `review_post`만 오류를 낸다 |
+| `WRITER_TEMPLATES` | `writer.templates.json` | 글 템플릿 파일 |
 | `LLM_PROVIDER` | `claude-code` | LLM 호출 방식. `claude-code`(Claude 구독) 또는 `anthropic-api`(API 키, 사용량 과금) |
 | `WRITER_MODEL` | Provider 기본값 | 모델 ID |
 | `WRITER_CLAUDE_BIN` | `claude` | `claude-code` Provider가 실행할 파일. 셸을 거치지 않으므로 npm으로 설치한 Windows에서는 `claude.exe`의 전체 경로를 적는다 |
@@ -36,13 +38,43 @@ npm run build
 
 `claude-code` Provider는 본인이 개인 툴로 쓰는 용도다. 남이 쓸 때는 `anthropic-api` Provider를 쓴다.
 
+## 템플릿 파일
+
+모든 도구의 `template` 입력 값이 이 파일에서 나온다. 템플릿은 가이드라인이라서 절이 빠지거나 이름이 달라도 위반이 아니다.
+
+```json
+{
+  "default": "article",
+  "templates": {
+    "article": { "description": "General post", "referencesHeading": "참고 자료" },
+    "escape-review": {
+      "description": "Escape room review",
+      "referencesHeading": "참고 자료",
+      "frontmatter": { "escape.cafe": { "research": "매장 이름과 지점" } },
+      "sections": [{ "heading": "방에 들어가서", "research": "공식 시놉시스", "prompt": "첫인상과 분위기" }],
+      "criteria": []
+    }
+  }
+}
+```
+
+| 항목 | 필수 | 설명 |
+|---|---|---|
+| `default` | O | `template`을 생략했을 때 쓰는 템플릿 ID |
+| `templates` | O | 템플릿 ID(소문자 kebab-case)별 템플릿. 하나 이상 |
+| `description` | O | 도구 입력 설명에 나오는 한 줄 설명 |
+| `referencesHeading` | O | 각주 설명 줄을 모으는 마지막 절의 제목. 규칙 검사가 쓴다 |
+| `sections` | | 이런 글에 보통 들어가는 절. `heading`과, 조사해서 채울 `research`, 작성자에게 남길 `prompt` |
+| `frontmatter` | | frontmatter 필드 경로별 `research`와 `prompt` |
+| `criteria` | | `review_post`의 LLM 비평에 더할 기준 |
+
 ## Claude Code에 연결
 
 ```sh
 claude mcp add --scope local writer -e SITE_ROOT=/path/to/site -- node /path/to/writer/dist/index.js
 ```
 
-서버는 시작할 때 스키마를 한 번만 읽는다. 코드를 고치면 `npm run build`를, 사이트 스키마가 바뀌면 스키마 파일을 다시 만든 뒤 세션을 다시 시작한다.
+서버는 시작할 때 스키마와 템플릿 파일을 한 번만 읽는다. 코드를 고치면 `npm run build`를, 사이트 스키마가 바뀌면 스키마 파일을 다시 만든 뒤, 템플릿 파일을 고친 뒤에도 세션을 다시 시작한다.
 
 ## 도구
 
@@ -60,6 +92,24 @@ sample/clean/index.md {"title":"깨끗한 글","description":"규칙을 모두 �
 ```
 
 `structuredContent`는 `{ "posts": [{ "post": "...", "frontmatter": {...} }, { "post": "...", "error": "..." }] }` 모양이다.
+
+### `get_template`
+
+초안용 템플릿을 돌려준다. 초안은 이 도구를 부른 쪽이 조사하고 쓴다. LLM을 쓰지 않고 파일을 고치지 않는다.
+
+| 입력 | 설명 |
+|---|---|
+| `template` | 글 템플릿. 생략하면 파일의 `default` |
+
+응답에는 템플릿의 `frontmatter`, `sections`와 초안 작성 지침 `instructions`가 들어 있다. 지침의 요지는 다음과 같다.
+
+- 절은 가이드라인이다. 글에 맞게 바꾸거나 뺀다.
+- `research`는 공개 자료를 조사해 쓰고 각주를 단다. 직접 읽은 페이지만 인용한다.
+- `prompt`는 작성자가 직접 쓸 내용이다. 감상이나 경험을 지어내지 않고 `<!-- TODO: ... -->` 주석으로 남긴다. 사이트에는 보이지 않는다.
+- `list_posts`로 겹치는 소재와 링크할 글을 먼저 본다.
+- 새 파일에 `draft: true`로 저장하고 `check_post`로 검사한다.
+
+`criteria`는 검토용이라 응답에 넣지 않는다.
 
 ### `check_post`
 
@@ -162,7 +212,7 @@ src/
 ├─ config.ts       환경변수와 스키마 파일 읽기
 ├─ content/        글 찾기, frontmatter 자르기와 해석, 본문 파싱
 ├─ rules/          규칙과 실행기. 글을 받아 위반 목록을 돌려주는 순수 함수
-├─ templates/      글 템플릿 목록
+├─ templates/      템플릿 파일 읽기
 ├─ llm/            LLM Provider
 ├─ review/         LLM 비평 요청과 응답 형식
 ├─ loop/           수정 한 회차: 수정 목록 요청, 적용, 재검사

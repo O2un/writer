@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCritiqueRequest, critiqueSchema, readGuide } from '../../src/review/critique.js';
-import { TEMPLATES } from '../../src/templates/index.js';
+import { FIXTURE_CONFIG } from '../fixtures.js';
 import { FIXTURE_SITE_ROOT } from '../fixtures.js';
 
-const template = TEMPLATES.article;
+const template = FIXTURE_CONFIG.templates.byId.article!;
 
 describe('buildCritiqueRequest', () => {
   it('puts the guide in the system prompt and the post in the prompt', () => {
