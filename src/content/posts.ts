@@ -1,6 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { parseFrontmatter, splitFrontmatter } from './frontmatter.js';
 
 const POST_EXTENSIONS = ['.md', '.mdx'];
 const INDEX_FILES = POST_EXTENSIONS.map((ext) => `index${ext}`);
@@ -47,6 +48,23 @@ export async function readPost(contentDir: string, input: string): Promise<PostF
     relativePath: path.relative(contentDir, absolutePath).split(path.sep).join('/'),
     source: await readFile(absolutePath, 'utf8'),
   };
+}
+
+export type PostSummary = { post: string; frontmatter: Record<string, unknown> } | { post: string; error: string };
+
+export async function listPosts(contentDir: string): Promise<PostSummary[]> {
+  const files = (await readdir(contentDir, { recursive: true }))
+    .filter((entry) => POST_EXTENSIONS.includes(path.extname(entry)))
+    .map((entry) => entry.split(path.sep).join('/'))
+    .sort();
+
+  return Promise.all(
+    files.map(async (post) => {
+      const block = parseFrontmatter(splitFrontmatter(await readFile(path.join(contentDir, post), 'utf8')).frontmatter);
+      if (block.status === 'ok') return { post, frontmatter: block.data };
+      return { post, error: block.status === 'missing' ? 'frontmatter missing' : `frontmatter is invalid: ${block.error}` };
+    }),
+  );
 }
 
 function isFile(target: string): boolean {
