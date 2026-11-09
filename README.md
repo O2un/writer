@@ -2,7 +2,7 @@
 
 블로그 글의 초안 작성, 검토, 수정을 돕는 LLM 에이전트다. MCP 서버로 동작해서 Claude Code 같은 MCP 클라이언트에서 도구로 호출한다.
 
-도구는 글 목록 `list_posts`, 초안 템플릿 `get_template`, 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`가 있다. 초안은 호출한 쪽이 `get_template`을 받아 조사하고 쓴다. 서버 안에서 LLM을 부르는 도구는 검토와 수정뿐이다. 규칙과 설계 판단은 [docs/rules.md](docs/rules.md)에 있다.
+도구는 글 목록 `list_posts`, 초안 템플릿 `get_template`, 규칙 검사 `check_post`, 검토 `review_post`, 수정 `revise_post`가 있다. 초안은 호출한 쪽이 `get_template`을 받아 조사하고 쓴다. 서버 안에서 LLM을 부르는 도구는 검토와 수정뿐이다. 구조와 설계 이유는 [docs/architecture.md](docs/architecture.md), 규칙과 판단은 [docs/rules.md](docs/rules.md)에 있다.
 
 ## 요구 사항
 
@@ -74,7 +74,7 @@ npm run build
 claude mcp add --scope local writer -e SITE_ROOT=/path/to/site -- node /path/to/writer/dist/index.js
 ```
 
-서버는 시작할 때 스키마와 템플릿 파일을 한 번만 읽는다. 코드를 고치면 `npm run build`를, 사이트 스키마가 바뀌면 스키마 파일을 다시 만든 뒤, 템플릿 파일을 고친 뒤에도 세션을 다시 시작한다.
+스키마, 템플릿, 안내 문서 파일은 도구를 호출할 때 바뀌었는지 보고 다시 읽는다. 사이트 스키마를 고쳤으면 `astro sync`로 스키마 파일만 다시 만들면 된다. 세션을 다시 시작해야 하는 경우는 둘이다. writer 코드를 고쳐 `npm run build`를 했을 때, 그리고 템플릿을 추가하거나 지웠을 때다. 템플릿 ID 목록은 도구 입력 스키마라서 시작할 때 정해진다.
 
 ## 사이트에 의존하지 않는 것
 

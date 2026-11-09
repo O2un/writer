@@ -5,7 +5,7 @@ import type { Config } from '../../config.js';
 import type { LlmProvider } from '../../llm/index.js';
 import { critiquePost, critiqueSchema, type CritiqueIssue } from '../../review/critique.js';
 import { readGuide } from '../../writing/principles.js';
-import { checkOutputSchema, createPostChecker, formatReport, postInputSchema, rulesPassed, templateById } from './post-check.js';
+import { checkOutputSchema, createPostChecker, formatReport, postInputSchema, rulesPassed } from './post-check.js';
 
 const reviewFields = {
   passed: z.boolean().describe('True when the rule checks pass and the critique has no issues'),
@@ -25,9 +25,9 @@ export function registerReviewPost(server: McpServer, config: Config, provider: 
       annotations: { readOnlyHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ path, template }): Promise<CallToolResult> => {
-      const { source, report } = await check(path, template);
+      const { source, template: selected, report } = await check(path, template);
       const guide = await readGuide(config.guidePath);
-      const issues = await critiquePost(provider, guide, templateById(config.templates, template), source);
+      const issues = await critiquePost(provider, guide, selected, source);
 
       return {
         content: [{ type: 'text', text: [formatReport(report), ...formatIssues(issues)].join('\n') }],

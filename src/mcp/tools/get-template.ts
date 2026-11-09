@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { Template } from '../../templates/index.js';
 import { formatPrinciples, readGuide, WRITING_PRINCIPLES } from '../../writing/principles.js';
-import { templateById, templateInput } from './post-check.js';
+import { currentTemplates, templateById, templateInput } from './post-check.js';
 
 const item = {
   research: z.string().optional().describe('Public facts to look up and cite with footnotes'),
@@ -40,6 +40,8 @@ export function draftingInstructions(template: Template): string {
 }
 
 export function registerGetTemplate(server: McpServer, config: Config): void {
+  const templates = currentTemplates(config);
+
   server.registerTool(
     'get_template',
     {
@@ -51,7 +53,7 @@ export function registerGetTemplate(server: McpServer, config: Config): void {
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ template: id }): Promise<CallToolResult> => {
-      const template = templateById(config.templates, id);
+      const template = templateById(templates(), id);
       const { description, referencesHeading, frontmatter, sections } = template;
       const instructions = draftingInstructions(template);
       const guide = await readGuide(config.guidePath);

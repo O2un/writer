@@ -8,8 +8,12 @@ export interface Config {
   siteRoot: string;
   contentDir: string;
   schema: Record<string, unknown>;
+  /** Schema file, re-read when it changes. Without it, `schema` stays fixed */
+  schemaPath?: string;
   guidePath: string;
   templates: Templates;
+  /** Templates file, re-read when it changes. Without it, `templates` stays fixed */
+  templatesPath?: string;
   llm: { provider: LlmProviderName; model?: string; claudeBin: string };
 }
 
@@ -42,17 +46,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   const { LLM_PROVIDER: provider, WRITER_MODEL: model, WRITER_CLAUDE_BIN: claudeBin } = parsed.data;
 
+  const schemaPath = path.resolve(siteRoot, parsed.data.WRITER_SCHEMA);
+  const templatesPath = path.resolve(siteRoot, parsed.data.WRITER_TEMPLATES);
+
   return {
     siteRoot,
     contentDir,
-    schema: readSchema(path.resolve(siteRoot, parsed.data.WRITER_SCHEMA)),
+    schema: readSchema(schemaPath),
+    schemaPath,
     guidePath: path.resolve(siteRoot, parsed.data.WRITER_GUIDE),
-    templates: loadTemplates(path.resolve(siteRoot, parsed.data.WRITER_TEMPLATES)),
+    templates: loadTemplates(templatesPath),
+    templatesPath,
     llm: model ? { provider, model, claudeBin } : { provider, claudeBin },
   };
 }
 
-function loadTemplates(file: string): Templates {
+export function loadTemplates(file: string): Templates {
   try {
     return readTemplates(file);
   } catch (error) {
@@ -61,7 +70,7 @@ function loadTemplates(file: string): Templates {
   }
 }
 
-function readSchema(file: string): Record<string, unknown> {
+export function readSchema(file: string): Record<string, unknown> {
   if (!existsSync(file)) {
     throw new ConfigError(`schema file not found: ${file}. Check that the site has been built`);
   }

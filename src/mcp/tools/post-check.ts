@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import type { Config } from '../../config.js';
+import { loadTemplates, readSchema, type Config } from '../../config.js';
 import { parsePost } from '../../content/post.js';
 import { readPost } from '../../content/posts.js';
 import { checkPost, createRules, SEVERITIES, type CheckResult, type Violation } from '../../rules/index.js';
+import { reloading } from '../../reload.js';
 import type { Template, Templates } from '../../templates/index.js';
 
 export function templateInput({ ids, defaultId, byId }: Templates) {
@@ -47,28 +48,41 @@ export interface CheckReport extends CheckResult {
 
 export interface LoadedPost {
   source: string;
+  template: Template;
   report: CheckReport;
   check: (source: string) => CheckResult;
 }
 
 export function createPostChecker(config: Config) {
-  const rules = createRules(config);
+  const schema = reloading(config.schemaPath, config.schema, readSchema);
+  const templates = currentTemplates(config);
+  let rulesSchema = config.schema;
+  let rules = createRules({ schema: rulesSchema });
 
   return async (input: string, template: string): Promise<LoadedPost> => {
+    if (schema() !== rulesSchema) {
+      rulesSchema = schema();
+      rules = createRules({ schema: rulesSchema });
+    }
+    const selected = templateById(templates(), template);
     const file = await readPost(config.contentDir, input);
     const postDir = path.dirname(file.absolutePath);
     const context = {
       assetExists: (relative: string) => existsSync(path.resolve(postDir, relative)),
-      template: templateById(config.templates, template),
+      template: selected,
     };
     const check = (source: string) => checkPost(parsePost(source), context, rules);
-    return { source: file.source, report: { post: file.relativePath, template, ...check(file.source) }, check };
+    return { source: file.source, template: selected, report: { post: file.relativePath, template, ...check(file.source) }, check };
   };
+}
+
+export function currentTemplates(config: Config): () => Templates {
+  return reloading(config.templatesPath, config.templates, loadTemplates);
 }
 
 export function templateById({ byId }: Templates, id: string): Template {
   const template = byId[id];
-  if (!template) throw new Error(`unknown template: ${id}`);
+  if (!template) throw new Error(`unknown template: ${id}. The templates file no longer has it; restart the session to update the tool inputs`);
   return template;
 }
 
