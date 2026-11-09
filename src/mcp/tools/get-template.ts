@@ -24,8 +24,11 @@ export function draftingInstructions(template: Template): string {
     'Draft the post yourself with this template:',
     '- The sections are a guideline. Rename, reorder, merge or drop them to fit the topic.',
     `- research: look up public sources such as official pages and articles, write the facts, and cite them with footnotes collected in a final '${template.referencesHeading}' section. Cite only pages you actually read. Mark anything you could not verify as needing verification.`,
+    '- If search finds nothing or a page cannot be fetched, open it with a browser tool when one is available. Otherwise ask the author for a link or the text itself instead of leaving the fact out silently.',
     "- prompt: this is first-hand content. Do not write impressions, experiences or opinions for the author. Use only what the author told you, and otherwise leave an HTML comment '<!-- TODO: <prompt> -->' for the author. It stays hidden on the site.",
-    "- Frontmatter: fill fields the same way. Leave out author-only fields you have no value for and list them in a '# TODO:' YAML comment.",
+    '- Leave TODOs only for the prompts in this template. Do not add sections or TODOs the template does not have.',
+    "- Frontmatter: fill fields the same way. Leave out optional fields you have no value for, without a TODO. When a required field has no value, name the missing required fields in one '# TODO:' YAML comment.",
+    '- Problems outside the post, such as a value the site schema does not allow, go to the author in your reply, not into the file.',
     '- Call list_posts first to avoid repeating a topic and to find posts to link.',
     '- Save a new post with draft: true, never over an existing post, then run check_post on it.',
   ].join('\n');

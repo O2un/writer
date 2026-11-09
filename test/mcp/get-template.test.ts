@@ -48,6 +48,9 @@ describe('get_template', () => {
     expect(instructions).toContain("'<!-- TODO: <prompt> -->'");
     expect(instructions).toContain("final '참고 자료' section");
     expect(instructions).toContain('draft: true');
+    expect(instructions).toContain('open it with a browser tool');
+    expect(instructions).toContain('Leave out optional fields you have no value for, without a TODO');
+    expect(instructions).toContain('not into the file');
   });
 
   it('prints the guidance as text', async () => {
